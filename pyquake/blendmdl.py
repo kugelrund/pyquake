@@ -30,9 +30,6 @@ import numpy as np
 from . import mdl, blendmat
 
 
-BLENDMATS: Dict[str, blendmat.BlendMat] = {}
-
-
 @dataclass
 class BlendMdl:
     am: "AliasMdl"
@@ -144,7 +141,8 @@ def _create_shape_key(obj, simple_frame, vert_map):
     return shape_key
 
 
-def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, do_materials):
+def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, do_materials,
+              known_materials: Dict[str, blendmat.BlendMat]):
     pal = np.concatenate([pal, np.ones(256)[:, None]], axis=1)
 
     # If the initial pose is a group frame, just load frames from that group.
@@ -202,7 +200,7 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
             if sample_as_light:
                 mat_name = f"{mat_name}_{obj_name}_triset{tri_set_idx}_fullbright"
 
-            if mat_name not in BLENDMATS:
+            if mat_name not in known_materials:
                 array_im, fullbright_array_im, _ = blendmat.array_ims_from_indices(
                     pal,
                     am.skins[skin_num],
@@ -232,8 +230,8 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
                 if sample_as_light:
                     sample_as_light_mats.add(bm)
 
-                BLENDMATS[mat_name] = bm
-            bm = BLENDMATS[mat_name]
+                known_materials[mat_name] = bm
+            bm = known_materials[mat_name]
 
             # Apply the material
             mesh.materials.append(bm.mat)

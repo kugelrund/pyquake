@@ -33,7 +33,7 @@ import bpy
 import bpy_types
 import numpy as np
 
-from . import proto, bsp, mdl, blendmdl, blendbsp, simplex, blendpart
+from . import proto, bsp, mdl, blendmdl, blendbsp, blendmat, simplex, blendpart
 
 
 logger = logging.getLogger(__name__)
@@ -372,6 +372,8 @@ class ObjectManager:
         bpy.context.scene.collection.objects.link(self._demo_cam_obj)
         self._demo_cam_obj.parent = self.world_obj
 
+        self._known_materials: Dict[str, blendmat.BlendMat] = dict()
+
     def set_intermission(self, i: bool):
         self._intermission = i
 
@@ -392,7 +394,8 @@ class ObjectManager:
             b = bsp.Bsp(self._fs.open(map_path))
             map_name = self._path_to_bsp_name(map_path)
             logger.info('Adding bsp %s', map_path)
-            self._bb = blendbsp.add_bsp(b, self._pal, map_name, self._config)
+            self._bb = blendbsp.add_bsp(b, self._pal, map_name, self._config,
+                                        self._known_materials)
             self._bb.map_obj.parent = self.world_obj
             self._bb.hide_all_but_main()
 
@@ -441,7 +444,8 @@ class ObjectManager:
                                 skin,
                                 mdl_cfg,
                                 frame,
-                                self._config['do_materials'])
+                                self._config['do_materials'],
+                                self._known_materials)
         bm.obj.parent = self.world_obj
         bm.obj.location = origin
         bm.obj.rotation_euler = (0., 0., angles[1])
@@ -487,7 +491,8 @@ class ObjectManager:
                                     skin_num,
                                     mdl_cfg,
                                     initial_pose_num,
-                                    self._config['do_materials'])
+                                    self._config['do_materials'],
+                                    self._known_materials)
             bm.obj.parent = self.world_obj
             managed_obj = AliasModelManagedObject(self._fps, bm)
 
@@ -503,7 +508,7 @@ class ObjectManager:
             if len(b.models) != 1:
                 raise Exception(f"Expected one model in bsp model {bsp_name}, not {len(b.models)}")
             bb = blendbsp.add_bsp(b, self._pal, bsp_name, self._config,
-                                  f'ent{entity_num}_')
+                                  self._known_materials, f'ent{entity_num}_')
             bb.map_obj.parent = self.world_obj
             managed_obj = BspModelManagedObject(self._fps, bb, 0)
         else:

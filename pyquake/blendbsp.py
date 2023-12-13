@@ -139,7 +139,8 @@ def _get_anim_textures(texture: Texture, texture_dict: Dict[str, Texture]) -> bl
 
 
 class _MaterialApplier:
-    def __init__(self, pal, texture_dict, map_cfg, lightmap_ims: Optional[List[bpy.types.Image]]):
+    def __init__(self, pal, texture_dict, map_cfg, lightmap_ims: Optional[List[bpy.types.Image]],
+                 known_materials: Dict[str, blendmat.BlendMat]):
         self._pal = pal
         self._map_cfg = map_cfg
         self.sample_as_light_info = collections.defaultdict(lambda: collections.defaultdict(dict))
@@ -147,6 +148,7 @@ class _MaterialApplier:
         self.posable_mats: Dict[Model, Set[blendmat.BlendMat]] = collections.defaultdict(set)
         self.animated_mats: Set[blendmat.BlendMat] = set()
         self._lightmap_ims = lightmap_ims
+        self._known_materials = known_materials
 
         if self._lightmap_ims is not None:
             self._style_node_groups = blendmat.setup_light_style_node_groups()
@@ -246,12 +248,15 @@ class _MaterialApplier:
                                      lightmap_styles,
                                      mat_type)
 
-            bmat = self._get_material(mat_name, mat_type, texture, images, warp, sky,
-                                      None if lightmap_styles is None else tuple(lightmap_styles))
+            if mat_name not in self._known_materials:
+                bmat = self._get_material(mat_name, mat_type, texture, images, warp, sky,
+                                          None if lightmap_styles is None else tuple(lightmap_styles))
+                bmat.mat.cycles.sample_as_light = sample_as_light
+                self._known_materials[mat_name] = bmat
+            bmat = self._known_materials[mat_name]
 
             if sample_as_light:
                 self.sample_as_light_info[model][bsp_face.leaf][bmat] = tex_cfg
-            bmat.mat.cycles.sample_as_light = sample_as_light
 
             assert bmat.is_posable == images.is_posable
             assert bmat.is_animated == (sky or warp or images.is_animated)
@@ -534,7 +539,7 @@ def _deep_update(d, u):
     return d
 
 
-def add_bsp(bsp, pal, map_name, config, obj_name_prefix=''):
+def add_bsp(bsp, pal, map_name, config, known_materials, obj_name_prefix=''):
     pal = np.concatenate([pal, np.ones(256)[:, None]], axis=1)
     pal[0, 3] = 0
 
@@ -547,7 +552,7 @@ def add_bsp(bsp, pal, map_name, config, obj_name_prefix=''):
     if config['do_materials']:
         if config['use_lightmap']:
             lightmap_ims = [_load_lightmap_im(a, idx) for idx, a in enumerate(bsp.full_lightmap_image)]
-        mat_applier = _MaterialApplier(pal, bsp.textures_by_name, map_cfg, lightmap_ims)
+        mat_applier = _MaterialApplier(pal, bsp.textures_by_name, map_cfg, lightmap_ims, known_materials)
     else:
         mat_applier = None
 
