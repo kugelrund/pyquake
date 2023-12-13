@@ -176,6 +176,8 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
         pydata, vert_map = _simplify_pydata([list(v) for v in initial_verts],
                                             [list(reversed(am.tris[t])) for t in tri_set])
         mesh.from_pydata(*pydata)
+        if mdl_cfg['shade_smooth']:
+            mesh.polygons.foreach_set('use_smooth', [True] * len(mesh.polygons))
         subobj = bpy.data.objects.new(subobj_name, mesh)
         subobj.parent = obj
         sub_objs.append(subobj)

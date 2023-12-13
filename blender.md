@@ -125,6 +125,8 @@ changed:
   is true.
 - `models.<name>.no_naim`: Don't animate the model.  Currently used for flame
   models since the movement introduces temporal inconsistency in the noise.
+- `models.<name>.shade_smooth`: Whether to use smooth instead of the default
+  flat shading for the model.
 - `maps.<name>.fullbright_object_overlay`: Separate out fullbright regions of
   textures with the `overlay` flag set into their own objects.  This is to make
   multiple importance sampling more efficient, since a large object with a small
