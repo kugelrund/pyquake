@@ -525,14 +525,23 @@ def load_bsp(pak_root, map_name, config):
     return add_bsp(bsp, pal, map_name, config)
 
 
+def _deep_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = _deep_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+
 def add_bsp(bsp, pal, map_name, config, obj_name_prefix=''):
     pal = np.concatenate([pal, np.ones(256)[:, None]], axis=1)
     pal[0, 3] = 0
 
+    map_cfg = dict(config['maps']['__default__'])
     if map_name.startswith('b_'):
-        map_cfg = config['maps']['__bsp_model__']
-    else:
-        map_cfg = config['maps'][map_name]
+        _deep_update(map_cfg, config['maps'].get('__bsp_model__', {}))
+    _deep_update(map_cfg, config['maps'].get(map_name, {}))
 
     lightmap_ims = None
     if config['do_materials']:

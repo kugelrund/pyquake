@@ -47,6 +47,33 @@
         }
     },
     "maps": {
+        "__default__": {
+            "fullbright_object_overlay": true,
+            "textures": {
+                "__default__": {
+                    "strength": 1,
+                    "sample_as_light": false,
+                    "tint": [1, 1, 1, 1],
+                    "overlay": true
+                },
+                "tlight07": {
+                    "strength": 1000,
+                    "sample_as_light": true,
+                    "tint": [1, 1, 3.33, 1],
+                    "bbox": [[-768, -768, -768], [768, 768, 768]]
+                },
+                "sliplite": {
+                    "strength": 100,
+                    "sample_as_light": true,
+                    "bbox": [[-64, -64, -64], [64, 64, 64]]
+                },
+                "slipside": {
+                    "strength": 100,
+                    "sample_as_light": true,
+                    "bbox": [[-64, -64, -64], [64, 64, 64]]
+                }
+            }
+        },
         "__bsp_model__": {
             "fullbright_object_overlay": false,
             "textures": {
@@ -59,14 +86,7 @@
             }
         },
         "100m": {
-            "fullbright_object_overlay": true,
             "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                },
                 "asph3": {
                     "strength": 50,
                     "sample_as_light": true
@@ -125,14 +145,6 @@
         },
         "400m": {
             "fullbright_object_overlay": false,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -146,14 +158,6 @@
         },
         "400m_stripped": {
             "fullbright_object_overlay": false,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -166,31 +170,6 @@
             }
         },
         "start": {
-            "fullbright_object_overlay": true,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                },
-                "tlight07": {
-                    "strength": 1000,
-                    "sample_as_light": true,
-                    "tint": [1, 1, 3.33, 1],
-                    "bbox": [[-768, -768, -768], [768, 768, 768]]
-                },
-                "sliplite": {
-                    "strength": 100,
-                    "sample_as_light": true,
-                    "bbox": [[-64, -64, -64], [64, 64, 64]]
-                },
-                "slipside": {
-                    "strength": 100,
-                    "sample_as_light": true,
-                    "bbox": [[-64, -64, -64], [64, 64, 64]]
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -203,24 +182,11 @@
             }
         },
         "e1m1": {
-            "fullbright_object_overlay": true,
             "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                },
                 "tlight02": {
                     "strength": 30,
                     "sample_as_light": true,
                     "bbox": [[-64, -64, -64], [64, 64, 64]]
-                },
-                "tlight07": {
-                    "strength": 1000,
-                    "sample_as_light": true,
-                    "tint": [1, 1, 3.33, 1],
-                    "bbox": [[-768, -768, -768], [768, 768, 768]]
                 },
                 "tlight11": {
                     "strength": 1000,
@@ -233,16 +199,6 @@
                     "sample_as_light": true,
                     "tint": [1, 0.8, 1, 1],
                     "bbox": [[-256, -256, -256], [256, 256, 256]]
-                },
-                "sliplite": {
-                    "strength": 100,
-                    "sample_as_light": true,
-                    "bbox": [[-64, -64, -64], [64, 64, 64]]
-                },
-                "slipside": {
-                    "strength": 100,
-                    "sample_as_light": true,
-                    "bbox": [[-64, -64, -64], [64, 64, 64]]
                 },
                 "+0basebtn": {
                     "strength": 50,
@@ -276,15 +232,6 @@
             }
         },
         "e1m2": {
-            "fullbright_object_overlay": true,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -327,15 +274,6 @@
             }
         },
         "e1m3": {
-            "fullbright_object_overlay": true,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -368,15 +306,6 @@
             }
         },
         "e1m4": {
-            "fullbright_object_overlay": true,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                }
-            },
             "lights": {
                 "sun": {
                     "type": "SUN",
@@ -399,14 +328,7 @@
             }
         },
         "e1m5": {
-            "fullbright_object_overlay": true,
             "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                },
                 "metal6_3": {
                     "strength": 50,
                     "overlay": true,
@@ -441,12 +363,8 @@
             }
         },
         "e1m6": {
-            "fullbright_object_overlay": true,
             "textures": {
                 "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
                     "overlay": false
                 },
                 "key03_02": {
@@ -507,14 +425,7 @@
             }
         },
         "e1m7": {
-            "fullbright_object_overlay": true,
             "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
-                },
                 "*lava1": {
                     "strength": 100,
                     "sample_as_light": false
@@ -549,17 +460,6 @@
                     "type": "POINT",
                     "location": [840.0, 64.0, -976.0],
                     "energy": 10.0
-                }
-            }
-        },
-        "e2m1": {
-            "fullbright_object_overlay": true,
-            "textures": {
-                "__default__": {
-                    "strength": 1,
-                    "sample_as_light": false,
-                    "tint": [1, 1, 1, 1],
-                    "overlay": true
                 }
             }
         }
