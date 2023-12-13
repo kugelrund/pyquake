@@ -119,7 +119,9 @@ changed:
   will be.
 - `models.<name>.strength`: Brightness of the emitter.
 - `models.<name>.sample_as_light`: Whether to set the `sample_as_light` (aka
-  multiple importance sampling) flag on the material.
+  multiple importance sampling) flag on the material dynamically depending on
+  the current PVS. For Blender >= 3.5, the new `emission_sampling` flag will
+  be set instead.
 - `models.<name>.bbox`: A pair of (mins, maxs) 3-tuples describing the range of
   influence of the light emitted by this object.  Required if `sample_as_light`
   is true.
@@ -139,7 +141,9 @@ changed:
   overlay for this texture.  See `maps.<name>.fullbright_object_overlay` for
   details.
 - `maps.<name>.textures.<name>.sample_as_light`: Whether to set the
-  `sample_as_light` (aka multiple importance sampling) flag on the material.
+  `sample_as_light` (aka multiple importance sampling) flag on the material
+  dynamically depending on the current PVS. For Blender >= 3.5, the new
+  `emission_sampling` flag will be set instead.
 - `maps.<name>.texture.<name>.bbox`: A pair of (mins, maxs) 3-tuples describing
   the range of influence of the light emitted by this surface.  Required if
   `sample_as_light` is true.

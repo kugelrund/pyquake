@@ -225,7 +225,7 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
                         mat_name,
                         warp=False
                     )
-                bm.mat.cycles.sample_as_light = sample_as_light
+                bm.set_sample_as_light(sample_as_light)
 
                 if sample_as_light:
                     sample_as_light_mats.add(bm)

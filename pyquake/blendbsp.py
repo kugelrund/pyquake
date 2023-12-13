@@ -251,7 +251,7 @@ class _MaterialApplier:
             if mat_name not in self._known_materials:
                 bmat = self._get_material(mat_name, mat_type, texture, images, warp, sky,
                                           None if lightmap_styles is None else tuple(lightmap_styles))
-                bmat.mat.cycles.sample_as_light = sample_as_light
+                bmat.set_sample_as_light(sample_as_light)
                 self._known_materials[mat_name] = bmat
             bmat = self._known_materials[mat_name]
 

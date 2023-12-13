@@ -164,9 +164,20 @@ class BlendMat:
         frame_input.default_value = frame
         frame_input.keyframe_insert('default_value', frame=blender_frame)
 
+    def set_sample_as_light(self, sample_as_light: bool):
+        if hasattr(self.mat.cycles, 'emission_sampling'):
+            # with Blender 3.5, the sample_as_light (or "Multiple Importance Sample")
+            # setting was replaced with the emission_sampling setting
+            self.mat.cycles.emission_sampling = 'FRONT' if sample_as_light else 'NONE'
+            return 'emission_sampling'
+        else:
+            # before Blender 3.5
+            self.mat.cycles.sample_as_light = sample_as_light
+            return 'sample_as_light'
+
     def add_sample_as_light_keyframe(self, sample_as_light: bool, blender_frame: int):
-        self.mat.cycles.sample_as_light = sample_as_light
-        self.mat.cycles.keyframe_insert('sample_as_light', frame=blender_frame)
+        property_name = self.set_sample_as_light(sample_as_light)
+        self.mat.cycles.keyframe_insert(property_name, frame=blender_frame)
 
     @property
     def is_animated(self):
