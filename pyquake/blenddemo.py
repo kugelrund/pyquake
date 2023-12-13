@@ -418,6 +418,18 @@ class ObjectManager:
         if model_path.endswith('.spr'):
             # Not supported
             return
+        if model_path.startswith('*'):
+            if self._load_level:
+                map_model_idx = int(model_path[1:])
+                model = self._bb.bsp.models[map_model_idx]
+                obj = self._bb.model_objs[model]
+                obj.location = origin
+                obj.hide_viewport = False
+                obj.hide_render = False
+                for fullbright_obj in self._bb.fullbright_objects[model]:
+                    fullbright_obj.hide_viewport = False
+                    fullbright_obj.hide_render = False
+            return
         am = mdl.AliasModel(self._fs.open(model_path))
 
         mdl_name = self._path_to_model_name(model_path)
