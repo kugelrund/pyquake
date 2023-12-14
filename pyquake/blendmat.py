@@ -392,23 +392,24 @@ def _create_inputs(frame_inputs, time_inputs, nodes, links):
         _create_value_node(time_inputs, nodes, links, 'time')
 
 
-def setup_sky_material(ims: BlendMatImages, mat_name):
+def setup_sky_material(ims: BlendMatImages, mat_name, mat_cfg: dict):
     image = ims.frames[0].im
 
     mat, nodes, links = _new_mat(mat_name)
 
     output_node = nodes.new('ShaderNodeOutputMaterial')
 
-    mix_node = nodes.new('ShaderNodeMixShader')
-    links.new(output_node.inputs['Surface'], mix_node.outputs['Shader'])
+    map_range_node = nodes.new('ShaderNodeMapRange')
+    map_range_node.inputs['From Min'].default_value = 0
+    map_range_node.inputs['From Max'].default_value = 1
+    map_range_node.inputs['To Min'].default_value = mat_cfg['strength']
+    map_range_node.inputs['To Max'].default_value = mat_cfg['cam_strength']
 
     light_path_node = nodes.new('ShaderNodeLightPath')
-    transparent_node = nodes.new('ShaderNodeBsdfTransparent')
     emission_node = nodes.new('ShaderNodeEmission')
-    emission_node.inputs['Strength'].default_value = 0.25
-    links.new(mix_node.inputs['Fac'], light_path_node.outputs['Is Camera Ray'])
-    links.new(mix_node.inputs[1], transparent_node.outputs['BSDF'])
-    links.new(mix_node.inputs[2], emission_node.outputs['Emission'])
+    links.new(map_range_node.inputs['Value'], light_path_node.outputs['Is Camera Ray'])
+    links.new(emission_node.inputs['Strength'], map_range_node.outputs['Result'])
+    links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
 
     mix_rgb_node = nodes.new('ShaderNodeMixRGB')
     links.new(emission_node.inputs['Color'], mix_rgb_node.outputs['Color'])

@@ -202,7 +202,7 @@ class _MaterialApplier:
         if sky:
             assert mat_type == "main"
             assert not warp
-            bmat = blendmat.setup_sky_material(images, mat_name)
+            bmat = blendmat.setup_sky_material(images, mat_name, tex_cfg)
         elif mat_type == "main":
             if self._use_lightmap:
                 if lightmap_styles is not None:
