@@ -116,7 +116,8 @@ changed:
 
 - `models.<name>.force_fullbright`: Make the whole model an emitter,
   otherwise just those parts of the texture that are in the fullbright palette
-  will be.
+  will be. Can also be an array (of the same dimensions as the models texture)
+  to set only specific parts of the model to be an emitter.
 - `models.<name>.strength`: Brightness of the emitter.
 - `models.<name>.sample_as_light`: Whether to set the `sample_as_light` (aka
   multiple importance sampling) flag on the material dynamically depending on

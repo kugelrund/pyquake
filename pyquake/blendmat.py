@@ -50,7 +50,10 @@ def im_from_array(name, array_im):
 
 
 def array_ims_from_indices(pal, im_indices, gamma=1.0, light_tint=(1, 1, 1, 1), force_fullbright=False):
-    if force_fullbright:
+    if not np.isscalar(force_fullbright):
+        assert force_fullbright.shape == im_indices.shape
+        fullbright_array = force_fullbright
+    elif force_fullbright:
         fullbright_array = np.full_like(im_indices, True)
     else:
         fullbright_array = (im_indices >= 224)
