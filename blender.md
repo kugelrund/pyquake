@@ -134,6 +134,10 @@ changed:
   textures with the `overlay` flag set into their own objects.  This is to make
   multiple importance sampling more efficient, since a large object with a small
   fullbright area will be sampled uniformly across the object.
+- `maps.<name>.textures.<name>.force_fullbright`: Make the whole texture an
+  emitter, otherwise just those parts of the texture that are in the fullbright
+  palette will be. Can also be an array (of the same dimensions as the texture)
+  to set only specific parts of it to be emitting.
 - `maps.<name>.textures.<name>.strength`:  Emission strength for fullbright
   parts of the texture.
 - `maps.<name>.textures.<name>.tint`:  Emitted colours are multiplied by this

@@ -39,9 +39,10 @@ from . import pak, blendmat
 _LIGHTMAP_UV_LAYER_NAME = "lightmap_uvmap"
 
 
-def _texture_to_arrays(pal, texture, light_tint=(1, 1, 1, 1)):
+def _texture_to_arrays(pal, texture, light_tint=(1, 1, 1, 1), force_fullbright=False):
     im_indices = np.fromstring(texture.data[0], dtype=np.uint8).reshape((texture.height, texture.width))
-    return blendmat.array_ims_from_indices(pal, im_indices, light_tint=light_tint, gamma=1.0)
+    return blendmat.array_ims_from_indices(pal, im_indices, light_tint=light_tint, gamma=1.0,
+                                           force_fullbright=force_fullbright)
 
 
 def _set_uvs(mesh, texinfos, face_verts):
@@ -161,7 +162,8 @@ class _MaterialApplier:
 
     def _load_image(self, texture):
         tex_cfg = _get_texture_config(texture, self._map_cfg)
-        array_im, fullbright_array_im, _ = _texture_to_arrays(self._pal, texture, tex_cfg['tint'])
+        array_im, fullbright_array_im, _ = _texture_to_arrays(self._pal, texture, tex_cfg['tint'],
+                                                              tex_cfg['force_fullbright'])
         im = blendmat.im_from_array(texture.name, array_im)
         if fullbright_array_im is not None:
             fullbright_im = blendmat.im_from_array(f"{texture.name}_fullbright", fullbright_array_im)
@@ -359,9 +361,9 @@ def _pydata_from_faces(tuple_faces):
     return verts, [], int_faces
 
 
-def _get_union_fullbright_array(pal, texture, texture_dict):
+def _get_union_fullbright_array(pal, texture, texture_dict, force_fullbright):
     return functools.reduce(operator.or_,
-                            (_texture_to_arrays(pal, tex)[2]
+                            (_texture_to_arrays(pal, tex, force_fullbright)[2]
                              for tex_list in _get_anim_textures(texture, texture_dict)
                              for tex in tex_list))
 
@@ -370,7 +372,9 @@ def _load_fullbright_objects(model, map_name, pal, texture_dict, mat_applier, ma
     # Calculate bounding boxes for regions of full brightness.
     bboxes = {}
     for texture in {f.tex_info.texture for f in model.faces}:
-        fullbright_array = _get_union_fullbright_array(pal, texture, texture_dict)
+        tex_cfg = _get_texture_config(texture, map_cfg)
+        fullbright_array = _get_union_fullbright_array(pal, texture, texture_dict,
+                                                       tex_cfg['force_fullbright'])
         if np.any(fullbright_array):
             bboxes[texture] = _get_bbox(fullbright_array)
 
