@@ -412,8 +412,10 @@ def setup_sky_material(ims: BlendMatImages, mat_name):
 
     front_texture_node = nodes.new('ShaderNodeTexImage')
     front_texture_node.image = image
+    front_texture_node.interpolation = 'Closest'
     back_texture_node = nodes.new('ShaderNodeTexImage')
     back_texture_node.image = image
+    back_texture_node.interpolation = 'Closest'
     links.new(mix_rgb_node.inputs['Color1'], back_texture_node.outputs['Color'])
     links.new(mix_rgb_node.inputs['Color2'], front_texture_node.outputs['Color'])
     links.new(mix_rgb_node.inputs['Fac'], front_texture_node.outputs['Alpha'])
