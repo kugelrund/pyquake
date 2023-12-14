@@ -7,6 +7,7 @@
             "sample_as_light": false,
             "force_fullbright": false,
             "strength": 1,
+            "cam_strength": 1,
             "shade_smooth": true
         },
         "m_g_key": {
@@ -43,7 +44,8 @@
         },
         "player": {
             "force_fullbright": true,
-            "strength": 0.05
+            "strength": 0.05,
+            "cam_strength": 0.05
         }
     },
     "maps": {

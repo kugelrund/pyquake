@@ -488,8 +488,7 @@ def setup_diffuse_material(ims: BlendMatImages, mat_name: str, warp: bool):
     return BlendMat(mat)
 
 
-def setup_fullbright_material(ims: BlendMatImages, mat_name: str,
-                              strength: float, cam_strength: float, warp: bool):
+def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
     mat, nodes, links = _new_mat(mat_name)
 
     diffuse_im_output, diffuse_time_inputs, diffuse_frame_inputs = _setup_alt_image_nodes(
@@ -506,14 +505,14 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str,
     add_node = nodes.new('ShaderNodeAddShader')
     emission_node = nodes.new('ShaderNodeEmission')
 
-    if strength == cam_strength:
-        emission_node.inputs['Strength'].default_value = strength
+    if mat_cfg['strength'] == mat_cfg['cam_strength']:
+        emission_node.inputs['Strength'].default_value = mat_cfg['strength']
     else:
         map_range_node = nodes.new('ShaderNodeMapRange')
         map_range_node.inputs['From Min'].default_value = 0
         map_range_node.inputs['From Max'].default_value = 1
-        map_range_node.inputs['To Min'].default_value = strength
-        map_range_node.inputs['To Max'].default_value = cam_strength
+        map_range_node.inputs['To Min'].default_value = mat_cfg['strength']
+        map_range_node.inputs['To Max'].default_value = mat_cfg['cam_strength']
         links.new(emission_node.inputs['Strength'], map_range_node.outputs['Result'])
 
         light_path_node = nodes.new('ShaderNodeLightPath')
@@ -530,7 +529,7 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str,
     return BlendMat(mat)
 
 
-def setup_transparent_fullbright_material(ims: BlendMatImages, mat_name: str, strength: float, warp: bool):
+def setup_transparent_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
     mat, nodes, links = _new_mat(mat_name)
 
     diffuse_im_output, diffuse_time_inputs, diffuse_frame_inputs = _setup_alt_image_nodes(
@@ -547,7 +546,7 @@ def setup_transparent_fullbright_material(ims: BlendMatImages, mat_name: str, st
     mix_node = nodes.new('ShaderNodeMixShader')
     transparent_node = nodes.new('ShaderNodeBsdfTransparent')
 
-    emission_node.inputs['Strength'].default_value = strength
+    emission_node.inputs['Strength'].default_value = mat_cfg['strength']
 
     links.new(emission_node.inputs['Color'], diffuse_im_output)
     links.new(mix_node.inputs[0], fullbright_im_output)
