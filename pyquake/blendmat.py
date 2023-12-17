@@ -49,7 +49,7 @@ def im_from_array(name, array_im):
     return im
 
 
-def array_ims_from_indices(pal, im_indices, gamma=1.0, light_tint=(1, 1, 1, 1), force_fullbright=False):
+def array_ims_from_indices(pal, im_indices, gamma=1.0, force_fullbright=False):
     if not np.isscalar(force_fullbright):
         assert force_fullbright.shape == im_indices.shape
         fullbright_array = force_fullbright
@@ -62,9 +62,7 @@ def array_ims_from_indices(pal, im_indices, gamma=1.0, light_tint=(1, 1, 1, 1), 
     array_im = array_im ** gamma
 
     if np.any(fullbright_array):
-        fullbright_array_im = array_im * fullbright_array[..., None]
-        fullbright_array_im *= light_tint
-        fullbright_array_im = np.clip(fullbright_array_im, 0., 1.)
+        fullbright_array_im = np.repeat(fullbright_array[:,:,np.newaxis], 4, axis=2)
     else:
         fullbright_array_im = None
 
@@ -378,6 +376,44 @@ def _setup_alt_image_nodes(ims: BlendMatImages, nodes, links, warp: bool, fullbr
     return output, time_inputs, frame_inputs
 
 
+def _get_socket_is_camera_ray(nodes):
+    try:
+        light_path_node = nodes['Light Path']
+    except KeyError:
+        light_path_node = nodes.new('ShaderNodeLightPath')
+    return light_path_node.outputs['Is Camera Ray']
+
+
+def _create_emission_strength_mix(nodes, links, fake_strength, cam_strength):
+    mix_node = nodes.new('ShaderNodeMix')
+    mix_node.data_type = 'FLOAT'
+    mix_node.inputs['A'].default_value = fake_strength
+    mix_node.inputs['B'].default_value = cam_strength
+    links.new(mix_node.inputs['Factor'], _get_socket_is_camera_ray(nodes))
+    return mix_node.outputs['Result']
+
+
+def _create_emission_color_mix(nodes, links, fake_color, cam_color):
+    if fake_color == cam_color:
+        return cam_color
+    mix_node = nodes.new('ShaderNodeMixRGB')
+    links.new(mix_node.inputs['Fac'], _get_socket_is_camera_ray(nodes))
+    links.new(mix_node.inputs['Color1'], fake_color)
+    links.new(mix_node.inputs['Color2'], cam_color)
+    return mix_node.outputs['Color']
+
+
+def _add_color_tint(nodes, links, tint, emission_color):
+    if all(a == b for a, b in zip(tint, (1.0, 1.0, 1.0, 1.0))):
+        return emission_color
+    tint_node = nodes.new('ShaderNodeMixRGB')
+    tint_node.blend_type = 'MULTIPLY'
+    tint_node.inputs['Fac'].default_value = 1.0
+    tint_node.inputs['Color2'].default_value = tint
+    links.new(tint_node.inputs['Color1'], emission_color)
+    return tint_node.outputs['Color']
+
+
 def _create_value_node(inputs, nodes, links, name):
     value_node = nodes.new('ShaderNodeValue')
     value_node.name = name
@@ -412,7 +448,11 @@ def setup_sky_material(ims: BlendMatImages, mat_name, mat_cfg: dict):
     links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
 
     mix_rgb_node = nodes.new('ShaderNodeMixRGB')
-    links.new(emission_node.inputs['Color'], mix_rgb_node.outputs['Color'])
+    cam_color = mix_rgb_node.outputs['Color']
+    fake_color = cam_color
+    fake_color = _add_color_tint(nodes, links, mat_cfg['tint'], fake_color)
+    color = _create_emission_color_mix(nodes, links, fake_color=fake_color, cam_color=cam_color)
+    links.new(emission_node.inputs['Color'], color)
 
     front_texture_node = nodes.new('ShaderNodeTexImage')
     front_texture_node.image = image
@@ -501,29 +541,29 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict,
     time_inputs = diffuse_time_inputs + fullbright_time_inputs
     frame_inputs = diffuse_frame_inputs + fullbright_frame_inputs
 
-    diffuse_node = nodes.new('ShaderNodeBsdfDiffuse')
+    emission_color = diffuse_im_output
+    emission_color = _add_color_tint(nodes, links, mat_cfg['tint'], emission_color)
+    emission_color = _create_emission_color_mix(
+        nodes, links, fake_color=emission_color, cam_color=diffuse_im_output)
+
+    emission_strength_node = nodes.new('ShaderNodeMath')
+    emission_strength_node.operation = 'MULTIPLY'
+    emission_strength_node.inputs[1].default_value = mat_cfg['strength']
+    if mat_cfg['strength'] != mat_cfg['cam_strength']:
+        emission_strength = _create_emission_strength_mix(
+            nodes, links, fake_strength=mat_cfg['strength'], cam_strength=mat_cfg['cam_strength'])
+        links.new(emission_strength_node.inputs[1], emission_strength)
+    links.new(emission_strength_node.inputs[0], fullbright_im_output)
+    emission_strength = emission_strength_node.outputs['Value']
+
+    shader_node = nodes.new('ShaderNodeBsdfPrincipled')
+    shader_node.inputs['Specular IOR Level'].default_value = 0.0
+    links.new(shader_node.inputs['Base Color'], diffuse_im_output)
+    links.new(shader_node.inputs['Emission Color'], emission_color)
+    links.new(shader_node.inputs['Emission Strength'], emission_strength)
+
     output_node = nodes.new('ShaderNodeOutputMaterial')
-    add_node = nodes.new('ShaderNodeAddShader')
-    emission_node = nodes.new('ShaderNodeEmission')
-
-    if mat_cfg['strength'] == mat_cfg['cam_strength']:
-        emission_node.inputs['Strength'].default_value = mat_cfg['strength']
-    else:
-        map_range_node = nodes.new('ShaderNodeMapRange')
-        map_range_node.inputs['From Min'].default_value = 0
-        map_range_node.inputs['From Max'].default_value = 1
-        map_range_node.inputs['To Min'].default_value = mat_cfg['strength']
-        map_range_node.inputs['To Max'].default_value = mat_cfg['cam_strength']
-        links.new(emission_node.inputs['Strength'], map_range_node.outputs['Result'])
-
-        light_path_node = nodes.new('ShaderNodeLightPath')
-        links.new(map_range_node.inputs['Value'], light_path_node.outputs['Is Camera Ray'])
-
-    links.new(diffuse_node.inputs['Color'], diffuse_im_output)
-    links.new(emission_node.inputs['Color'], fullbright_im_output)
-    links.new(add_node.inputs[0], diffuse_node.outputs['BSDF'])
-    links.new(add_node.inputs[1], emission_node.outputs['Emission'])
-    links.new(output_node.inputs['Surface'], add_node.outputs['Shader'])
+    links.new(output_node.inputs['Surface'], shader_node.outputs['BSDF'])
 
     _create_inputs(frame_inputs, time_inputs, nodes, links)
 

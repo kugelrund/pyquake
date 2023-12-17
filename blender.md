@@ -119,6 +119,8 @@ changed:
   will be. Can also be an array (of the same dimensions as the models texture)
   to set only specific parts of the model to be an emitter.
 - `models.<name>.strength`: Brightness of the emitter.
+- `models.<name>.tint`:  Emitted colours are multiplied by this 4-vector.  Use
+  to tune light colour.
 - `models.<name>.sample_as_light`: Whether to set the `sample_as_light` (aka
   multiple importance sampling) flag on the material dynamically depending on
   the current PVS. For Blender >= 3.5, the new `emission_sampling` flag will

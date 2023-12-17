@@ -39,9 +39,9 @@ from . import pak, blendmat
 _LIGHTMAP_UV_LAYER_NAME = "lightmap_uvmap"
 
 
-def _texture_to_arrays(pal, texture, light_tint=(1, 1, 1, 1), force_fullbright=False):
+def _texture_to_arrays(pal, texture, force_fullbright=False):
     im_indices = np.fromstring(texture.data[0], dtype=np.uint8).reshape((texture.height, texture.width))
-    return blendmat.array_ims_from_indices(pal, im_indices, light_tint=light_tint, gamma=1.0,
+    return blendmat.array_ims_from_indices(pal, im_indices, gamma=1.0,
                                            force_fullbright=force_fullbright)
 
 
@@ -162,7 +162,7 @@ class _MaterialApplier:
 
     def _load_image(self, texture):
         tex_cfg = _get_texture_config(texture, self._map_cfg)
-        array_im, fullbright_array_im, _ = _texture_to_arrays(self._pal, texture, tex_cfg['tint'],
+        array_im, fullbright_array_im, _ = _texture_to_arrays(self._pal, texture,
                                                               tex_cfg['force_fullbright'])
         im = blendmat.im_from_array(texture.name, array_im)
         if fullbright_array_im is not None:
