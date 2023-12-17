@@ -120,7 +120,9 @@ changed:
   to set only specific parts of the model to be an emitter.
 - `models.<name>.strength`: Brightness of the emitter.
 - `models.<name>.tint`:  Emitted colours are multiplied by this 4-vector.  Use
-  to tune light colour.
+  to tune light colour. See [Blender HSV Node](https://docs.blender.org/manual/en/latest/render/shader_nodes/color/hue_saturation.html).
+- `models.<name>.tint_hsv`:  Emitted colours are adjusted using the given
+  hue, saturation and value shifts.
 - `models.<name>.sample_as_light`: Whether to set the `sample_as_light` (aka
   multiple importance sampling) flag on the material dynamically depending on
   the current PVS. For Blender >= 3.5, the new `emission_sampling` flag will
@@ -144,6 +146,8 @@ changed:
   parts of the texture.
 - `maps.<name>.textures.<name>.tint`:  Emitted colours are multiplied by this
   4-vector.  Use to tune light colour.
+- `maps.<name>.textures.<name>.tint_hsv`:  Emitted colours are adjusted using
+  the given hue, saturation and value parameters. See [Blender HSV Node](https://docs.blender.org/manual/en/latest/render/shader_nodes/color/hue_saturation.html).
 - `maps.<name>.textures.<name>.overlay`: Enable / disable fullbright object
   overlay for this texture.  See `maps.<name>.fullbright_object_overlay` for
   details.

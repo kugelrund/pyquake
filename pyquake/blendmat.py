@@ -414,6 +414,17 @@ def _add_color_tint(nodes, links, tint, emission_color):
     return tint_node.outputs['Color']
 
 
+def _add_color_tint_hsv(nodes, links, tint_hsv, emission_color):
+    if all(a == b for a, b in zip(tint_hsv, (0.5, 1.0, 1.0))):
+        return emission_color
+    tint_node_hsv = nodes.new('ShaderNodeHueSaturation')
+    tint_node_hsv.inputs['Hue'].default_value = tint_hsv[0]
+    tint_node_hsv.inputs['Saturation'].default_value = tint_hsv[1]
+    tint_node_hsv.inputs['Value'].default_value = tint_hsv[2]
+    links.new(tint_node_hsv.inputs['Color'], emission_color)
+    return tint_node_hsv.outputs['Color']
+
+
 def _create_value_node(inputs, nodes, links, name):
     value_node = nodes.new('ShaderNodeValue')
     value_node.name = name
@@ -451,6 +462,7 @@ def setup_sky_material(ims: BlendMatImages, mat_name, mat_cfg: dict):
     cam_color = mix_rgb_node.outputs['Color']
     fake_color = cam_color
     fake_color = _add_color_tint(nodes, links, mat_cfg['tint'], fake_color)
+    fake_color = _add_color_tint_hsv(nodes, links, mat_cfg['tint_hsv'], fake_color)
     color = _create_emission_color_mix(nodes, links, fake_color=fake_color, cam_color=cam_color)
     links.new(emission_node.inputs['Color'], color)
 
@@ -543,6 +555,7 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict,
 
     emission_color = diffuse_im_output
     emission_color = _add_color_tint(nodes, links, mat_cfg['tint'], emission_color)
+    emission_color = _add_color_tint_hsv(nodes, links, mat_cfg['tint_hsv'], emission_color)
     emission_color = _create_emission_color_mix(
         nodes, links, fake_color=emission_color, cam_color=diffuse_im_output)
 
