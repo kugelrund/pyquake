@@ -225,7 +225,7 @@ class _MaterialApplier:
         else:
             assert not self._use_lightmap
             assert images.any_fullbright, "Should only be called with fullbright textures"
-            bmat = blendmat.setup_transparent_fullbright_material(images, mat_name, tex_cfg, warp)
+            bmat = blendmat.setup_fullbright_material(images, mat_name, tex_cfg, warp)
         return bmat
 
     def apply(self, model, mesh, bsp_faces, mat_type):

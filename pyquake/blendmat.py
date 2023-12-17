@@ -530,36 +530,6 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict,
     return BlendMat(mat)
 
 
-def setup_transparent_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
-    mat, nodes, links = _new_mat(mat_name)
-
-    diffuse_im_output, diffuse_time_inputs, diffuse_frame_inputs = _setup_alt_image_nodes(
-        ims, nodes, links, warp=warp, fullbright=False
-    )
-    fullbright_im_output, fullbright_time_inputs, fullbright_frame_inputs = _setup_alt_image_nodes(
-        ims, nodes, links, warp=warp, fullbright=True
-    )
-    time_inputs = diffuse_time_inputs + fullbright_time_inputs
-    frame_inputs = diffuse_frame_inputs + fullbright_frame_inputs
-
-    emission_node = nodes.new('ShaderNodeEmission')
-    output_node = nodes.new('ShaderNodeOutputMaterial')
-    mix_node = nodes.new('ShaderNodeMixShader')
-    transparent_node = nodes.new('ShaderNodeBsdfTransparent')
-
-    emission_node.inputs['Strength'].default_value = mat_cfg['strength']
-
-    links.new(emission_node.inputs['Color'], diffuse_im_output)
-    links.new(mix_node.inputs[0], fullbright_im_output)
-    links.new(mix_node.inputs[1], transparent_node.outputs['BSDF'])
-    links.new(mix_node.inputs[2], emission_node.outputs['Emission'])
-    links.new(output_node.inputs['Surface'], mix_node.outputs['Shader'])
-
-    _create_inputs(frame_inputs, time_inputs, nodes, links)
-
-    return BlendMat(mat)
-
-
 def setup_explosion_particle_material(mat_name):
     mat, nodes, links = _new_mat(mat_name)
 
