@@ -430,6 +430,7 @@ def _create_value_node(inputs, nodes, links, name):
     value_node.name = name
     for inp in inputs:
         links.new(inp, value_node.outputs['Value'])
+    return value_node
 
 
 def _create_inputs(frame_inputs, time_inputs, nodes, links):
@@ -583,65 +584,79 @@ def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict,
     return BlendMat(mat)
 
 
-def setup_explosion_particle_material(mat_name):
+def _make_color_ramp(nodes, colors):
+    color_ramp_node = nodes.new('ShaderNodeValToRGB')
+    color_stops = colors
+    for i in range(1, len(color_stops)):
+        color_ramp_node.color_ramp.elements.new(i / len(color_stops))
+    for i, color in enumerate(color_stops):
+        r, g, b = color
+        alpha = 1.0
+        color_ramp_node.color_ramp.elements[i].color = (r, g, b, alpha)
+    color_ramp_node.color_ramp.interpolation = 'CONSTANT'
+    return color_ramp_node
+
+
+def setup_explosion_particle_material(mat_name, colors, max_lifetime):
     mat, nodes, links = _new_mat(mat_name)
 
     output_node = nodes.new('ShaderNodeOutputMaterial')
 
-    mix_node = nodes.new('ShaderNodeMixShader')
-    links.new(output_node.inputs['Surface'], mix_node.outputs['Shader'])
-
     emission_node = nodes.new('ShaderNodeEmission')
-    emission_node.inputs['Strength'].default_value = 10
-    transparent_node = nodes.new('ShaderNodeBsdfTransparent')
-    links.new(mix_node.inputs[1], emission_node.outputs['Emission'])
-    links.new(mix_node.inputs[2], transparent_node.outputs['BSDF'])
+    emission_node.inputs['Strength'].default_value = 1
+    links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
 
-    blackbody_node = nodes.new('ShaderNodeBlackbody')
-    links.new(emission_node.inputs['Color'], blackbody_node.outputs['Color'])
+    color_ramp_node = _make_color_ramp(nodes, colors)
+    color = _add_color_tint_hsv(nodes, links, (0.5, 1.25, 1.0),
+                                color_ramp_node.outputs['Color'])
+    links.new(emission_node.inputs['Color'], color)
 
     map_range_node = nodes.new('ShaderNodeMapRange')
     map_range_node.inputs['From Min'].default_value = 0
     map_range_node.inputs['From Max'].default_value = 1
-    map_range_node.inputs['To Min'].default_value = 4000
-    map_range_node.inputs['To Max'].default_value = 500
-    links.new(blackbody_node.inputs['Temperature'], map_range_node.outputs['Result'])
+    map_range_node.inputs['To Min'].default_value = 50
+    map_range_node.inputs['To Max'].default_value = 1.25
+    links.new(emission_node.inputs['Strength'], map_range_node.outputs['Result'])
+
+    light_path_node = nodes.new('ShaderNodeLightPath')
+    links.new(map_range_node.inputs['Value'], light_path_node.outputs['Is Camera Ray'])
 
     div_node = nodes.new('ShaderNodeMath')
     div_node.operation = 'DIVIDE'
-    links.new(map_range_node.inputs['Value'], div_node.outputs['Value'])
-    links.new(mix_node.inputs[0], div_node.outputs['Value'])
+    links.new(color_ramp_node.inputs['Fac'], div_node.outputs['Value'])
+
+    add_node = nodes.new('ShaderNodeMath')
+    add_node.operation = 'ADD'
+    links.new(div_node.inputs[0], add_node.outputs['Value'])
+
+    subtract_node = nodes.new('ShaderNodeMath')
+    subtract_node.operation = 'SUBTRACT'
+    links.new(add_node.inputs[1], subtract_node.outputs['Value'])
+
+    value_node = _create_value_node(
+        [subtract_node.inputs[0], div_node.inputs[1]], nodes, links, 'max_lifetime')
+    value_node.outputs['Value'].default_value = max_lifetime
 
     particle_info_node = nodes.new('ShaderNodeParticleInfo')
-    links.new(div_node.inputs[0], particle_info_node.outputs['Age'])
-    links.new(div_node.inputs[1], particle_info_node.outputs['Lifetime'])
+    links.new(add_node.inputs[0], particle_info_node.outputs['Age'])
+    links.new(subtract_node.inputs[1], particle_info_node.outputs['Lifetime'])
 
     return BlendMat(mat)
 
 
-def setup_teleport_particle_material(mat_name):
+def setup_teleport_particle_material(mat_name, colors):
     mat, nodes, links = _new_mat(mat_name)
 
     output_node = nodes.new('ShaderNodeOutputMaterial')
 
-    mix_node = nodes.new('ShaderNodeMixShader')
-    links.new(output_node.inputs['Surface'], mix_node.outputs['Shader'])
-
     emission_node = nodes.new('ShaderNodeEmission')
-    emission_node.inputs['Strength'].default_value = .5
-    transparent_node = nodes.new('ShaderNodeBsdfTransparent')
-    links.new(mix_node.inputs[1], emission_node.outputs['Emission'])
-    links.new(mix_node.inputs[2], transparent_node.outputs['BSDF'])
+    emission_node.inputs['Strength'].default_value = 2.0
+    links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
 
-    color_ramp_node = nodes.new('ShaderNodeValToRGB')
-    div_node = nodes.new('ShaderNodeMath')
-    div_node.operation = 'DIVIDE'
+    color_ramp_node = _make_color_ramp(nodes, colors)
     links.new(emission_node.inputs['Color'], color_ramp_node.outputs['Color'])
-    links.new(mix_node.inputs[0], div_node.outputs['Value'])
 
     particle_info_node = nodes.new('ShaderNodeParticleInfo')
-    links.new(div_node.inputs[0], particle_info_node.outputs['Age'])
-    links.new(div_node.inputs[1], particle_info_node.outputs['Lifetime'])
     links.new(color_ramp_node.inputs['Fac'], particle_info_node.outputs['Random'])
 
     return BlendMat(mat)

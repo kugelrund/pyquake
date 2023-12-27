@@ -73,8 +73,6 @@ demo_fname = expanduser('~/Downloads/e1m6_conny.dem')
 with open(demo_fname, 'rb') as demo_file:
     world_obj, obj_mgr = blenddemo.add_demo(demo_file, fs, config, fps=360)
 
-world_obj.scale = (0.01,) * 3
-
 ```
 
 Change paths to point to the correct places, and execute.  Log messages

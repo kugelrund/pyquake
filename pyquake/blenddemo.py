@@ -334,7 +334,8 @@ class NullManagedObject(ManagedObject):
 
 
 class ObjectManager:
-    def __init__(self, fs, config, fps, fov, width, height, world_obj_name='demo', load_level=True):
+    def __init__(self, fs, config, fps, fov, width, height,
+                 world_obj_name='demo', load_level=True, scale=1/64):
         self._fs = fs
         self._fps = fps
         self._config = config
@@ -355,9 +356,11 @@ class ObjectManager:
         self._num_teleports: int = 0
 
         self.world_obj = bpy.data.objects.new(world_obj_name, None)
+        self.world_obj.scale = (scale,) * 3
         bpy.context.scene.collection.objects.link(self.world_obj)
+        bpy.context.scene.gravity[2] = -40.0 * scale
 
-        self._particles = blendpart.Particles()
+        self._particles = blendpart.Particles(self._pal, self._fps, scale)
         self._particles.root.parent = self.world_obj
 
         self._width, self._height = width, height
@@ -459,12 +462,12 @@ class ObjectManager:
 
     def create_teleport(self, pos, time):
         obj_name = f'teleport{self._num_teleports}'
-        self._particles.create_teleport(time, obj_name, pos, self._fps)
+        self._particles.create_teleport(time, obj_name, pos)
         self._num_teleports += 1
 
     def create_explosion(self, pos, time):
         obj_name = f'explosion{self._num_explosions}'
-        self._particles.create_explosion(time, obj_name, pos, self._fps)
+        self._particles.create_explosion(time, obj_name, pos)
         self._num_explosions += 1
 
     def _create_managed_object(self, entity_num, model_num, skin_num, initial_pose_num):
@@ -698,7 +701,8 @@ class ObjectManager:
 
 
 def add_demo(demo_file, fs, config, fps=30, world_obj_name='demo',
-             load_level=True, view_entity_only=False, relative_time=False, fov=120, width=1920, height=1080):
+             load_level=True, view_entity_only=False, relative_time=False,
+             fov=120, width=1920, height=1080, scale=1/64):
     assert not relative_time, "Not yet supported"
 
     baseline_entities: Dict[int, _EntityInfo] = collections.defaultdict(lambda: _DEFAULT_BASELINE)
@@ -706,7 +710,7 @@ def add_demo(demo_file, fs, config, fps=30, world_obj_name='demo',
     fixed_view_angles: Vec3 = (0, 0, 0)
     prev_updated = set()
     demo_done = False
-    obj_mgr = ObjectManager(fs, config, fps, fov, width, height, world_obj_name, load_level)
+    obj_mgr = ObjectManager(fs, config, fps, fov, width, height, world_obj_name, load_level, scale)
     last_time = 0.
     view_entity_num = None
 
