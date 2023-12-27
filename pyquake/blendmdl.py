@@ -40,7 +40,7 @@ class BlendMdl:
     _initial_pose_num: int
     _group_frame_times: Optional[List[float]]
     _shape_keys: List[List[bpy.types.ShapeKey]]
-    _no_anim: bool
+    _mdl_cfg: dict
     _current_pose_num: Optional[int] = None
     _last_time: Optional[float] = None
 
@@ -62,7 +62,7 @@ class BlendMdl:
             self._last_time = time
 
     def add_pose_keyframe(self, pose_num: int, time: float, fps: float):
-        if self._no_anim:
+        if self._mdl_cfg.get('no_anim', False):
             pass
 
         elif self._group_frame_times is not None:
@@ -77,7 +77,7 @@ class BlendMdl:
             sub_obj.visible_camera = False
 
     def done(self, final_time: float, fps: float):
-        if self._no_anim:
+        if self._mdl_cfg.get('no_anim', False):
             return
 
         if self._group_frame_times is not None:
@@ -90,7 +90,7 @@ class BlendMdl:
         for sub_obj in self.sub_objs:
             for c in sub_obj.data.shape_keys.animation_data.action.fcurves:
                 for kfp in c.keyframe_points:
-                    kfp.interpolation = 'LINEAR'
+                    kfp.interpolation = self._mdl_cfg.get('anim_interpolation', 'LINEAR')
 
 
 def _set_uvs(mesh, am, tri_set):
@@ -234,6 +234,5 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
             _set_uvs(mesh, am, tri_set)
 
     return BlendMdl(am, obj, sub_objs, sample_as_light_mats,
-                    initial_pose_num, group_times, shape_keys,
-                    mdl_cfg.get('no_anim', False))
+                    initial_pose_num, group_times, shape_keys, mdl_cfg)
 

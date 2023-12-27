@@ -128,7 +128,9 @@ changed:
 - `models.<name>.bbox`: A pair of (mins, maxs) 3-tuples describing the range of
   influence of the light emitted by this object.  Required if `sample_as_light`
   is true.
-- `models.<name>.no_naim`: Don't animate the model.  Currently used for flame
+- `models.<name>.anim_interpolation`: Type of interpolation for animation of
+  models. One of `CONSTANT`, `LINEAR`, `BEZIER`. Default: `LINEAR`.
+- `models.<name>.no_anim`: Don't animate the model.  Currently used for flame
   models since the movement introduces temporal inconsistency in the noise.
 - `models.<name>.shade_smooth`: Whether to use smooth instead of the default
   flat shading for the model.
