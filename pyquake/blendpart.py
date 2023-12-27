@@ -79,6 +79,11 @@ _EXPLOSION2_LIFETIME = _Lifetime.from_ramp(_EXPLOSION2_RAMP)
 _TELEPORT_COLOR_INDICES = list(range(7, 15))
 _TELEPORT_LIFETIME = _Lifetime(min=0.2, max=0.34)
 
+_GENERIC_PARTICLE_LIFETIME = _Lifetime(min=0.0, max=0.4)
+def _get_generic_particle_color_indices(color_id: int):
+    start = (color_id & ~7)
+    return list(range(start, start + 8))
+
 
 class Particles:
     root: bpy_types.Object
@@ -86,9 +91,11 @@ class Particles:
     _explosion: bpy_types.Object
     _explosion2: bpy_types.Object
     _random_velocity_texture: bpy_types.Texture
+    _generic_particle_objects: Dict[str, bpy_types.Object]
 
     def __init__(self, pal, fps, scale):
         self.root = _create_particle_root()
+        self._pal = pal
         self._fps = fps
         self._scale = scale
 
@@ -112,6 +119,16 @@ class Particles:
         tex.contrast = 1.2
         tex.noise_scale = 0.1
         self._random_velocity_texture = tex
+
+        self._generic_particle_objects = dict()
+
+    def _get_generic_particle_object(self, color_id: int):
+        name = f"generic_particle{color_id}"
+        if name not in self._generic_particle_objects:
+            obj = _create_generic_particle_object(name,
+                self._pal[_get_generic_particle_color_indices(color_id)])
+            self._generic_particle_objects[name] = obj
+        return self._generic_particle_objects[name]
 
     def _create_common_particle_system(
             self, emitter, name, pos, count, start_time, end_time,
@@ -199,6 +216,26 @@ class Particles:
 
         return emitter
 
+    def create_generic(self, start_time, obj_name, pos, direction,
+                       color_id: int, count: int):
+        emitter = _create_cuboid((-8, -8, -8), (7, 7, 7), obj_name)
+        self._create_common_particle_system(emitter, "generic", pos,
+            count=count,
+            start_time=start_time,
+            end_time=start_time,
+            lifetime=_GENERIC_PARTICLE_LIFETIME,
+            instance_object=self._get_generic_particle_object(color_id),
+            gravity_weight=1
+        )
+        emitter.particle_systems[0].settings.object_align_factor = [
+            d * 15 * self._scale for d in direction]
+
+        return emitter
+
+    def create_gunshot(self, start_time, obj_name, pos):
+        return self.create_generic(start_time, obj_name, pos,
+                                   direction=(0, 0, 0), color_id=0, count=21)
+
 
 def _create_icosphere(diameter, obj_name):
     mesh = bpy.data.meshes.new(obj_name)
@@ -251,9 +288,17 @@ def _create_explosion_particle_object(name, colors, max_lifetime_frames):
 
 def _create_teleport_particle_object(colors):
     obj = _create_icosphere(1, 'teleport_particle')
-    obj.data.materials.append(blendmat.setup_teleport_particle_material(
-        'teleport', colors).mat)
+    obj.data.materials.append(blendmat.setup_generic_particle_material(
+        'teleport', colors, strength=2.0).mat)
     obj.hide_render = True
 
     return obj
 
+
+def _create_generic_particle_object(name, colors):
+    obj = _create_icosphere(1, name)
+    obj.data.materials.append(blendmat.setup_generic_particle_material(
+        name, colors, strength=0.5).mat)
+    obj.hide_render = True
+
+    return obj

@@ -354,6 +354,8 @@ class ObjectManager:
         self._intermission = False
         self._num_explosions: int = 0
         self._num_teleports: int = 0
+        self._num_gunshots: int = 0
+        self._num_generic_particles: int = 0
 
         self.world_obj = bpy.data.objects.new(world_obj_name, None)
         self.world_obj.scale = (scale,) * 3
@@ -469,6 +471,16 @@ class ObjectManager:
         obj_name = f'explosion{self._num_explosions}'
         self._particles.create_explosion(time, obj_name, pos)
         self._num_explosions += 1
+
+    def create_gunshot(self, pos, time):
+        obj_name = f'gunshot{self._num_gunshots}'
+        self._particles.create_gunshot(time, obj_name, pos)
+        self._num_gunshots += 1
+
+    def create_generic_particle(self, pos, time, direction, color_id, count):
+        obj_name = f'generic_particles{self._num_generic_particles}'
+        self._particles.create_generic(time, obj_name, pos, direction, color_id, count)
+        self._num_generic_particles += 1
 
     def _create_managed_object(self, entity_num, model_num, skin_num, initial_pose_num):
         model_path = self._model_paths[model_num - 1] if model_num != 0 else None
@@ -773,6 +785,12 @@ def add_demo(demo_file, fs, config, fps=30, world_obj_name='demo',
                     obj_mgr.create_explosion(parsed.origin, time)
                 elif parsed.temp_entity_type == proto.TempEntityTypes.TELEPORT:
                     obj_mgr.create_teleport(parsed.origin, time)
+                elif parsed.temp_entity_type == proto.TempEntityTypes.GUNSHOT:
+                    obj_mgr.create_gunshot(parsed.origin, time)
+
+            if parsed.msg_type == proto.ServerMessageType.PARTICLE:
+                obj_mgr.create_generic_particle(
+                    parsed.origin, time, parsed.direction, parsed.color, parsed.count)
 
             if parsed.msg_type in (
                     proto.ServerMessageType.INTERMISSION,

@@ -644,13 +644,13 @@ def setup_explosion_particle_material(mat_name, colors, max_lifetime):
     return BlendMat(mat)
 
 
-def setup_teleport_particle_material(mat_name, colors):
+def setup_generic_particle_material(mat_name, colors, strength):
     mat, nodes, links = _new_mat(mat_name)
 
     output_node = nodes.new('ShaderNodeOutputMaterial')
 
     emission_node = nodes.new('ShaderNodeEmission')
-    emission_node.inputs['Strength'].default_value = 2.0
+    emission_node.inputs['Strength'].default_value = strength
     links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
 
     color_ramp_node = _make_color_ramp(nodes, colors)
