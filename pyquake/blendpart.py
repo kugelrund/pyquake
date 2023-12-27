@@ -76,6 +76,23 @@ _EXPLOSION2_RAMP = _Ramp(
 )
 _EXPLOSION2_LIFETIME = _Lifetime.from_ramp(_EXPLOSION2_RAMP)
 
+_ROCKET_TRAIL_RAMP = _Ramp(
+    color_indices=[0x6d, 0x6b, 6, 5, 4, 3],
+    speed=5,
+    start_min=0,
+    start_max=4,
+)
+_ROCKET_TRAIL_LIFETIME = _Lifetime.from_ramp(_ROCKET_TRAIL_RAMP)
+
+# grenade trail is just rocket trail but skipping the first two ramp entries
+_GRENADE_TRAIL_RAMP = _Ramp(
+    color_indices=_ROCKET_TRAIL_RAMP.color_indices,
+    speed=_ROCKET_TRAIL_RAMP.speed,
+    start_min=2,
+    start_max=6,
+)
+_GRENADE_TRAIL_LIFETIME = _Lifetime.from_ramp(_GRENADE_TRAIL_RAMP)
+
 _TELEPORT_COLOR_INDICES = list(range(7, 15))
 _TELEPORT_LIFETIME = _Lifetime(min=0.2, max=0.34)
 
@@ -90,6 +107,7 @@ class Particles:
     _teleport: bpy_types.Object
     _explosion: bpy_types.Object
     _explosion2: bpy_types.Object
+    _rocket_trail: bpy_types.Object
     _random_velocity_texture: bpy_types.Texture
     _generic_particle_objects: Dict[str, bpy_types.Object]
 
@@ -107,11 +125,16 @@ class Particles:
             colors=pal[_EXPLOSION2_RAMP.color_indices],
             max_lifetime_frames=int(round(_EXPLOSION2_LIFETIME.max * fps))
         )
+        self._rocket_trail = _create_rocket_trail_particle_object(
+            colors=pal[_ROCKET_TRAIL_RAMP.color_indices],
+            max_lifetime_frames=int(round(_ROCKET_TRAIL_LIFETIME.max * fps))
+        )
         self._teleport = _create_teleport_particle_object(
             colors=pal[_TELEPORT_COLOR_INDICES]
         )
         self._explosion.parent = self.root
         self._explosion2.parent = self.root
+        self._rocket_trail.parent = self.root
         self._teleport.parent = self.root
 
         tex = bpy.data.textures.new('explosion_velocity', type='CLOUDS')
@@ -199,6 +222,36 @@ class Particles:
 
         return emitter, emitter2
 
+    def create_grenade_trail(self, start_time, end_time, parent):
+        emitter = _create_cuboid((-3, -3, -3), (2, 2, 2), parent.name)
+        self._create_common_particle_system(emitter, 'grenade_trail',
+            pos=(0, 0, 0),
+            count=int(round(600 * (end_time - start_time))),
+            start_time=start_time,
+            end_time=end_time,
+            lifetime=_GRENADE_TRAIL_LIFETIME,
+            instance_object=self._rocket_trail,
+            gravity_weight=-1.0
+        )
+        emitter.parent = parent
+
+        return emitter
+
+    def create_rocket_trail(self, start_time, end_time, parent):
+        emitter = _create_cuboid((-3, -3, -3), (2, 2, 2), parent.name)
+        self._create_common_particle_system(emitter, 'rocket_trail',
+            pos=(0, 0, 0),
+            count=int(round(600 * (end_time - start_time))),
+            start_time=start_time,
+            end_time=end_time,
+            lifetime=_ROCKET_TRAIL_LIFETIME,
+            instance_object=self._rocket_trail,
+            gravity_weight=-1.0
+        )
+        emitter.parent = parent
+
+        return emitter
+
     def create_teleport(self, start_time, obj_name, pos):
         emitter = _create_cuboid((-16, -16, -24), (15, 15, 31), obj_name)
         self._create_common_particle_system(emitter, "teleport", pos,
@@ -281,6 +334,15 @@ def _create_explosion_particle_object(name, colors, max_lifetime_frames):
     obj = _create_icosphere(1, f'{name}_particle')
     obj.data.materials.append(blendmat.setup_explosion_particle_material(
         name, colors, max_lifetime_frames).mat)
+    obj.hide_render = True
+
+    return obj
+
+
+def _create_rocket_trail_particle_object(colors, max_lifetime_frames):
+    obj = _create_icosphere(1, 'rocket_trail_particle')
+    obj.data.materials.append(blendmat.setup_rocket_trail_particle_material(
+        'rocket_trail', colors, max_lifetime_frames).mat)
     obj.hide_render = True
 
     return obj

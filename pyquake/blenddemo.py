@@ -234,6 +234,11 @@ class ManagedObject:
     def add_angles_keyframe(self, angles: Vec3, time: float):
         raise NotImplementedError
 
+    def add_particle_trail(self, particles, time: float, fps: int):
+        # nothing to be done in the default case, only AliasModelManagedObject
+        # can get a particle trail
+        return
+
     def set_invisible_to_camera(self):
         raise NotImplementedError
 
@@ -270,6 +275,24 @@ class AliasModelManagedObject(ManagedObject):
         if self.bm.am.header['flags'] & mdl.ModelFlags.ROTATE:
             self.bm.obj.rotation_euler.z = time * 100. * np.pi / 180
         self.bm.obj.keyframe_insert('rotation_euler', frame=self._get_blender_frame(time))
+
+    def add_particle_trail(self, particles, time: float, fps: int):
+        flags = self.bm.am.header['flags']
+        if not flags & (mdl.ModelFlags.GRENADE | mdl.ModelFlags.ROCKET):
+            return
+        fcurves = self.bm.sub_objs[0].animation_data.action.fcurves
+        hide_render_curves = [f for f in fcurves if f.data_path == 'hide_render']
+        if not hide_render_curves:
+            return
+
+        hide_render_curve, = hide_render_curves
+        last_keyframe = hide_render_curve.keyframe_points[-1]
+        assert last_keyframe.co.y == False
+        start_time = last_keyframe.co.x / fps
+        if flags & mdl.ModelFlags.GRENADE:
+            particles.create_grenade_trail(start_time, time, self.bm.obj)
+        else:
+            particles.create_rocket_trail(start_time, time, self.bm.obj)
 
     def set_invisible_to_camera(self):
         self.bm.set_invisible_to_camera()
@@ -639,6 +662,10 @@ class ObjectManager:
             obj = self._objs[entity_num, prev_entities[entity_num].model_num]
             if (prev_entities[entity_num].model_num != entities[entity_num].model_num
                     or entity_num not in updated):
+                # for the time the object has been visible until now, it might
+                # need a particle trail
+                obj.add_particle_trail(self._particles, time, self._fps)
+
                 obj.add_visible_keyframe(False, time)
 
                 # Insert keyframes so the object doesn't drift towards where the entity is re-used.

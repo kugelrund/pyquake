@@ -44,7 +44,14 @@ class FrameType(enum.IntEnum):
 
 
 class ModelFlags(enum.IntFlag):
+    ROCKET = 1      # EF_ROCKET
+    GRENADE = 2     # EF_GRENADE
+    GIB = 4         # EF_GIB
     ROTATE = 8      # EF_ROTATE
+    TRACER = 16     # EF_TRACER
+    ZOMGIB = 32     # EF_ZOMGIB
+    TRACER2 = 64    # EF_TRACER2
+    TRACER3 = 128   # EF_TRACER3
 
 
 class BaseFrame:
