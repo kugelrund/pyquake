@@ -55,18 +55,14 @@ def _quake_to_blender_angles(quake_angles: Vec3) -> Vec3:
             math.pi * (quake_angles[1] - 90.) / 180)
 
 
-def _fix_angles(old_angles, new_angles, degrees=False):
-    # Undo wrapping of the yaw
-    if degrees:
-        t = 360
-    else:
-        t = 2 * np.pi
+def _fix_angle(old_angle, new_angle, degrees=False):
+    old_angle_unwrapped, new_angle_unwrapped = np.unwrap(
+        (old_angle, new_angle), period=360 if degrees else 2*np.pi)
+    assert old_angle_unwrapped == old_angle
+    return new_angle_unwrapped
 
-    old_yaw = old_angles[1] / t
-    new_yaw = new_angles[1] / t
-    i = old_yaw // 1
-    j = np.argmin(np.abs(np.array([i - 1, i, i + 1]) + new_yaw - old_yaw))
-    return (new_angles[0], (new_yaw + i + j - 1) * t, new_angles[2])
+def _fix_angles(old_angles, new_angles, degrees=False):
+    return tuple(_fix_angle(o, n, degrees) for (o, n) in zip(old_angles, new_angles))
 
 
 def _quake_angles_to_mat(angles):
