@@ -266,8 +266,12 @@ class AliasModelManagedObject(ManagedObject):
         self.bm.obj.keyframe_insert('location', frame=self._get_blender_frame(time))
 
     def add_angles_keyframe(self, angles: Vec3, time: float):
-        # Should this use the other angles?
-        self.bm.obj.rotation_euler = (0., 0., angles[1])
+        # Should this use the final angle (roll) too?
+        old_angles = (-self.bm.obj.rotation_euler[1],
+                      self.bm.obj.rotation_euler[2],
+                      angles[2])
+        angles = _fix_angles(old_angles, angles)
+        self.bm.obj.rotation_euler = (0., -angles[0], angles[1])
         if self.bm.am.header['flags'] & mdl.ModelFlags.ROTATE:
             self.bm.obj.rotation_euler.z = time * 100. * np.pi / 180
         self.bm.obj.keyframe_insert('rotation_euler', frame=self._get_blender_frame(time))
@@ -472,7 +476,7 @@ class ObjectManager:
                                 self._known_materials)
         bm.obj.parent = self.world_obj
         bm.obj.location = origin
-        bm.obj.rotation_euler = (0., 0., angles[1])
+        bm.obj.rotation_euler = (0., -angles[0], angles[1])
 
         self._static_objects.append(bm)
 
