@@ -369,7 +369,7 @@ def _get_union_fullbright_array(pal, texture, texture_dict, force_fullbright):
 def _load_fullbright_objects(model, map_name, pal, texture_dict, mat_applier, map_cfg, obj_name_prefix):
     # Calculate bounding boxes for regions of full brightness.
     bboxes = {}
-    for texture in {f.tex_info.texture for f in model.faces}:
+    for texture in {f.tex_info.texture for f in model.faces if f.tex_info.texture_exists}:
         tex_cfg = _get_texture_config(texture, map_cfg)
         fullbright_array = _get_union_fullbright_array(pal, texture, texture_dict,
                                                        tex_cfg['force_fullbright'])
