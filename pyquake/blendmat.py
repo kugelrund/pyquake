@@ -43,6 +43,12 @@ _MAX_LIGHT_STYLES = 64
 
 
 def im_from_array(name, array_im):
+    if name in bpy.data.images:
+        image = bpy.data.images[name]
+        is_same_size = lambda: array_im.shape == reversed(image.size)
+        is_same_data = lambda: all(np.isclose(np.ravel(array_im), image.pixels))
+        if is_same_size() and is_same_data():
+            return image
     im = bpy.data.images.new(name, alpha=True, width=array_im.shape[1], height=array_im.shape[0])
     im.pixels = np.ravel(array_im)
     im.pack()
