@@ -397,8 +397,8 @@ def _load_fullbright_objects(model, map_name, pal, texture_dict, mat_applier, ma
         
         # Iterate over each potential wraps of the texture.  Number of wraps is determined using bounding boxes in
         # texture space.
-        start_indices = np.ceil((face_bbox[0] - bbox[1]) / tex_size).astype(np.int)
-        end_indices = np.ceil((face_bbox[1] - bbox[0]) / tex_size).astype(np.int)
+        start_indices = np.ceil((face_bbox[0] - bbox[1]) / tex_size).astype(int)
+        end_indices = np.ceil((face_bbox[1] - bbox[0]) / tex_size).astype(int)
         for t_offset in range(start_indices[1], end_indices[1]):
             for s_offset in range(start_indices[0], end_indices[0]):
                 new_face = face_verts
