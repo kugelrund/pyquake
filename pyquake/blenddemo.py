@@ -256,10 +256,7 @@ class AliasModelManagedObject(ManagedObject):
     def add_visible_keyframe(self, visible: bool, time: float):
         blender_frame = self._get_blender_frame(time)
         for sub_obj in self.bm.sub_objs:
-            sub_obj.hide_render = not visible
-            sub_obj.keyframe_insert('hide_render', frame=blender_frame)
-            sub_obj.hide_viewport = not visible
-            sub_obj.keyframe_insert('hide_viewport', frame=blender_frame)
+            sub_obj.add_visible_keyframe(visible, blender_frame)
 
     def add_origin_keyframe(self, origin: Vec3, time: float):
         self.bm.obj.location = origin
@@ -280,7 +277,7 @@ class AliasModelManagedObject(ManagedObject):
         flags = self.bm.am.header['flags']
         if not flags & (mdl.ModelFlags.GRENADE | mdl.ModelFlags.ROCKET):
             return
-        fcurves = self.bm.sub_objs[0].animation_data.action.fcurves
+        fcurves = self.bm.sub_objs[0].obj.animation_data.action.fcurves
         hide_render_curves = [f for f in fcurves if f.data_path == 'hide_render']
         if not hide_render_curves:
             return

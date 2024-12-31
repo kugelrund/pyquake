@@ -30,33 +30,57 @@ import numpy as np
 from . import mdl, blendmat
 
 
+@dataclass(frozen=True)
+class BlendMdlSubobject:
+    obj: bpy_types.Object
+    shape_keys: List[bpy.types.ShapeKey]
+    _submdl_cfg: dict
+
+    def add_visible_keyframe(self, visible: bool, blender_frame: int):
+        self.obj.hide_render = not visible
+        self.obj.keyframe_insert('hide_render', frame=blender_frame)
+        self.obj.hide_viewport = not visible
+        self.obj.keyframe_insert('hide_viewport', frame=blender_frame)
+
+    def _update_pose(self, last_time: float, time: float, current_pose_num: int, pose_num: int, fps: float):
+        blender_frame = int(round(fps * time))
+        if current_pose_num is not None:
+            self.shape_keys[current_pose_num].value = 0
+            self.shape_keys[current_pose_num].keyframe_insert('value', frame=blender_frame)
+            last_blender_frame = int(round(fps * last_time))
+            self.shape_keys[pose_num].value = 0
+            self.shape_keys[pose_num].keyframe_insert('value', frame=last_blender_frame)
+
+        self.shape_keys[pose_num].value = 1
+        self.shape_keys[pose_num].keyframe_insert('value', frame=blender_frame)
+
+    def done(self, fps):
+        if self.obj.data.shape_keys.animation_data:
+            for c in self.obj.data.shape_keys.animation_data.action.fcurves:
+                for kfp in c.keyframe_points:
+                    kfp.interpolation = self._submdl_cfg.get('anim_interpolation', 'LINEAR')
+
+    def set_invisible_to_camera(self):
+        self.obj.visible_camera = False
+
+
 @dataclass
 class BlendMdl:
     am: "AliasMdl"
     obj: bpy_types.Object
-    sub_objs: List[bpy_types.Object]
+    sub_objs: List[BlendMdlSubobject]
     sample_as_light_mats: Set[blendmat.BlendMat]
 
     _initial_pose_num: int
     _group_frame_times: Optional[List[float]]
-    _shape_keys: List[List[bpy.types.ShapeKey]]
     _mdl_cfg: dict
     _current_pose_num: Optional[int] = None
     _last_time: Optional[float] = None
 
     def _update_pose(self, time: float, pose_num: int, fps: float):
         if self._current_pose_num is None or self._current_pose_num != pose_num:
-            for sub_obj, shape_keys in zip(self.sub_objs, self._shape_keys):
-                blender_frame = int(round(fps * time))
-                if self._current_pose_num is not None:
-                    shape_keys[self._current_pose_num].value = 0
-                    shape_keys[self._current_pose_num].keyframe_insert('value', frame=blender_frame)
-                    last_blender_frame = int(round(fps * self._last_time))
-                    shape_keys[pose_num].value = 0
-                    shape_keys[pose_num].keyframe_insert('value', frame=last_blender_frame)
-
-                shape_keys[pose_num].value = 1
-                shape_keys[pose_num].keyframe_insert('value', frame=blender_frame)
+            for sub_obj in self.sub_objs:
+                sub_obj._update_pose(self._last_time, time, self._current_pose_num, pose_num, fps)
 
             self._current_pose_num = pose_num
             self._last_time = time
@@ -74,7 +98,7 @@ class BlendMdl:
 
     def set_invisible_to_camera(self):
         for sub_obj in self.sub_objs:
-            sub_obj.visible_camera = False
+            sub_obj.set_invisible_to_camera()
 
     def done(self, final_time: float, fps: float):
         if self._mdl_cfg.get('no_anim', False):
@@ -88,9 +112,7 @@ class BlendMdl:
                 loop_time += self._group_frame_times[-1]
 
         for sub_obj in self.sub_objs:
-            for c in sub_obj.data.shape_keys.animation_data.action.fcurves:
-                for kfp in c.keyframe_points:
-                    kfp.interpolation = self._mdl_cfg.get('anim_interpolation', 'LINEAR')
+            sub_obj.done(fps)
 
 
 def _set_uvs(mesh, am, tri_set):
@@ -161,7 +183,6 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
     sample_as_light_mats: Set[blendmat.BlendMat] = set()
     obj = bpy.data.objects.new(obj_name, None)
     sub_objs = []
-    shape_keys = []
     bpy.context.scene.collection.objects.link(obj)
     for tri_set_idx, tri_set in enumerate(am.disjoint_tri_sets):
         subobj_cfg = mdl_cfg
@@ -183,19 +204,18 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
             mesh.polygons.foreach_set('use_smooth', [True] * len(mesh.polygons))
         subobj = bpy.data.objects.new(subobj_name, mesh)
         subobj.parent = obj
-        sub_objs.append(subobj)
         bpy.context.scene.collection.objects.link(subobj)
 
         # Create shape keys, used for animation.
         if group_frame is None:
-            shape_keys.append([
+            shape_keys = [
                 _create_shape_key(subobj, frame.frame, vert_map) for frame in am.frames
-            ])
+            ]
         else:
-            shape_keys.append([
+            shape_keys = [
                 _create_shape_key(subobj, simple_frame, vert_map)
                 for simple_frame in group_frame.frames
-            ])
+            ]
 
         if do_materials:
             # Set up material
@@ -241,6 +261,8 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
             mesh.materials.append(bm.mat)
             _set_uvs(mesh, am, tri_set)
 
+        sub_objs.append(BlendMdlSubobject(subobj, shape_keys, subobj_cfg))
+
     return BlendMdl(am, obj, sub_objs, sample_as_light_mats,
-                    initial_pose_num, group_times, shape_keys, mdl_cfg)
+                    initial_pose_num, group_times, mdl_cfg)
 
