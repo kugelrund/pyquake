@@ -164,6 +164,11 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
     shape_keys = []
     bpy.context.scene.collection.objects.link(obj)
     for tri_set_idx, tri_set in enumerate(am.disjoint_tri_sets):
+        subobj_cfg = mdl_cfg
+        if f"{mdl_name}_triset{tri_set_idx}" in mdl_cfg:
+            subobj_cfg = dict(mdl_cfg)
+            subobj_cfg.update(mdl_cfg.get(f"{mdl_name}_triset{tri_set_idx}", dict()))
+
         # Create the mesh and object
         subobj_name = f"{obj_name}_triset{tri_set_idx}"
         mesh = bpy.data.meshes.new(subobj_name)
@@ -174,7 +179,7 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
         pydata, vert_map = _simplify_pydata([list(v) for v in initial_verts],
                                             [list(reversed(am.tris[t])) for t in tri_set])
         mesh.from_pydata(*pydata)
-        if mdl_cfg['shade_smooth']:
+        if subobj_cfg['shade_smooth']:
             mesh.polygons.foreach_set('use_smooth', [True] * len(mesh.polygons))
         subobj = bpy.data.objects.new(subobj_name, mesh)
         subobj.parent = obj
@@ -194,17 +199,19 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
 
         if do_materials:
             # Set up material
-            sample_as_light = mdl_cfg['sample_as_light']
+            sample_as_light = subobj_cfg['sample_as_light']
             mat_name = f"{mdl_name}_skin{skin_num}"
 
             if sample_as_light:
                 mat_name = f"{mat_name}_{obj_name}_triset{tri_set_idx}_fullbright"
+            elif subobj_cfg != mdl_cfg:
+                mat_name = f"{mdl_name}_triset{tri_set_idx}_skin{skin_num}"
 
             if mat_name not in known_materials:
                 array_im, fullbright_array_im, _ = blendmat.array_ims_from_indices(
                     pal,
                     am.skins[skin_num],
-                    force_fullbright=mdl_cfg['force_fullbright']
+                    force_fullbright=subobj_cfg['force_fullbright']
                 )
                 im = blendmat.im_from_array(mat_name, array_im)
                 if fullbright_array_im is not None:
@@ -212,13 +219,14 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
                     bm = blendmat.setup_fullbright_material(
                         blendmat.BlendMatImages.from_single_pair(im, fullbright_im),
                         mat_name,
-                        mdl_cfg,
+                        subobj_cfg,
                         warp=False
                     )
                 else:
                     bm = blendmat.setup_diffuse_material(
                         blendmat.BlendMatImages.from_single_diffuse(im),
                         mat_name,
+                        subobj_cfg,
                         warp=False
                     )
                 bm.set_sample_as_light(sample_as_light)
