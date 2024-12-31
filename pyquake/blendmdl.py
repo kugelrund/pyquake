@@ -30,10 +30,52 @@ import numpy as np
 from . import mdl, blendmat
 
 
+@dataclass
+class PointLight:
+    obj: bpy_types.Object
+    locations: List[tuple]
+    radii: List[float]
+    parent_visible: bool = True
+    pose_visible: bool = True
+
+    def add_visible_keyframe_impl(self, blender_frame: int):
+        self.obj.hide_render = not self.parent_visible or not self.pose_visible
+        self.obj.keyframe_insert('hide_render', frame=blender_frame)
+        self.obj.hide_viewport = not self.parent_visible or not self.pose_visible
+        self.obj.keyframe_insert('hide_viewport', frame=blender_frame)
+
+    def add_visible_keyframe(self, visible: bool, blender_frame: int):
+        self.parent_visible = visible
+        self.add_visible_keyframe_impl(blender_frame)
+
+    def set_keyframe(self, pose_num: int, frame: int, hide: bool):
+        self.obj.location = self.locations[pose_num]
+        self.obj.data.shadow_soft_size = self.radii[pose_num]
+        self.obj.keyframe_insert('location', frame=frame)
+        self.obj.data.keyframe_insert('shadow_soft_size', frame=frame)
+        self.pose_visible = not hide
+        self.add_visible_keyframe_impl(frame)
+
+    def set_sample_as_light(self, sample_as_light: bool):
+        self.obj.data.cycles.use_multiple_importance_sampling = sample_as_light
+
+    def add_sample_as_light_keyframe(self, sample_as_light: bool, blender_frame: int):
+        self.set_sample_as_light(sample_as_light)
+        self.obj.data.cycles.keyframe_insert("use_multiple_importance_sampling", frame=blender_frame)
+
+    def __hash__(self):
+        return self.obj.__hash__()
+
+    def __eq__(self, other):
+        # kinda questionable
+        return self.obj == other.obj
+
+
 @dataclass(frozen=True)
 class BlendMdlSubobject:
     obj: bpy_types.Object
     shape_keys: List[bpy.types.ShapeKey]
+    point_light: Optional[PointLight]
     _submdl_cfg: dict
 
     def add_visible_keyframe(self, visible: bool, blender_frame: int):
@@ -41,6 +83,8 @@ class BlendMdlSubobject:
         self.obj.keyframe_insert('hide_render', frame=blender_frame)
         self.obj.hide_viewport = not visible
         self.obj.keyframe_insert('hide_viewport', frame=blender_frame)
+        if self.point_light:
+            self.point_light.add_visible_keyframe(visible, blender_frame)
 
     def _update_pose(self, last_time: float, time: float, current_pose_num: int, pose_num: int, fps: float):
         blender_frame = int(round(fps * time))
@@ -54,11 +98,28 @@ class BlendMdlSubobject:
         self.shape_keys[pose_num].value = 1
         self.shape_keys[pose_num].keyframe_insert('value', frame=blender_frame)
 
+        if self.point_light:
+            hide_point_light = pose_num in self._submdl_cfg.get("point_light_hide_in_pose", [])
+            self.point_light.set_keyframe(pose_num, blender_frame, hide_point_light)
+
     def done(self, fps):
         if self.obj.data.shape_keys.animation_data:
             for c in self.obj.data.shape_keys.animation_data.action.fcurves:
                 for kfp in c.keyframe_points:
                     kfp.interpolation = self._submdl_cfg.get('anim_interpolation', 'LINEAR')
+        if self.point_light and self.point_light.obj.animation_data:
+            for c in self.point_light.obj.animation_data.action.fcurves:
+                for kfp in c.keyframe_points:
+                    kfp.interpolation = self._submdl_cfg.get('anim_interpolation', 'LINEAR')
+        if self.point_light and self._submdl_cfg.get('flicker', 0.0) != 0.0:
+            self.point_light.obj.data.keyframe_insert('energy', frame=1)
+            fcurve = self.point_light.obj.data.animation_data.action.fcurves[-1]
+            noise = fcurve.modifiers.new(type='NOISE')
+            noise.scale = fps
+            noise.strength = self.point_light.obj.data.energy * self._submdl_cfg['flicker']
+            noise.depth = 2
+            noise.offset = random.randint(-fps * 1000, fps * 1000)
+            noise.phase = random.gauss(mu=0, sigma=1e3)
 
     def set_invisible_to_camera(self):
         self.obj.visible_camera = False
@@ -162,9 +223,35 @@ def _create_shape_key(obj, simple_frame, vert_map):
         shape_key_vert.co = simple_frame.frame_verts[old_vert_idx]
     return shape_key
 
+def _get_geometric_center(vertices):
+    return [sum(v.co[i] for v in vertices) / len(vertices) for i in range(3)]
+
+def _get_distance(v, u):
+    return np.linalg.norm(np.array(v) - np.array(u))
+
+def _get_average_distance_from_center(vertices):
+    center = _get_geometric_center(vertices)
+    return sum(_get_distance(v.co, center) / len(vertices) for v in vertices)
+
+def make_point_light(obj, subobj, mesh, shape_keys, scale, subobj_cfg):
+    light = bpy.data.lights.new(name=subobj.name + '_pointlight', type='POINT')
+    light.energy = subobj_cfg['strength'] * _get_average_distance_from_center(mesh.vertices) * scale
+    light.color = subobj_cfg['tint'][:3]
+    light_object = bpy.data.objects.new(name=subobj.name + '_pointlight', object_data=light)
+    light_object.parent = obj
+    subobj.visible_shadow = False
+    center = _get_geometric_center(mesh.vertices)
+    light_object.location = center
+    bpy.context.scene.collection.objects.link(light_object)
+    return PointLight(
+        light_object,
+        [_get_geometric_center(shape_key.data) for shape_key in shape_keys],
+        [_get_average_distance_from_center(shape_key.data) * scale for shape_key in shape_keys],
+    )
+
 
 def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, do_materials,
-              known_materials: Dict[str, blendmat.BlendMat]):
+              known_materials: Dict[str, blendmat.BlendMat], scale: float):
     pal = np.concatenate([pal, np.ones(256)[:, None]], axis=1)
 
     # If the initial pose is a group frame, just load frames from that group.
@@ -217,10 +304,18 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
                 for simple_frame in group_frame.frames
             ]
 
+        point_light = None
         if do_materials:
             # Set up material
             sample_as_light = subobj_cfg['sample_as_light']
             mat_name = f"{mdl_name}_skin{skin_num}"
+
+            if subobj_cfg.get('point_light', False):
+                point_light = make_point_light(obj, subobj, mesh, shape_keys, scale, subobj_cfg)
+                point_light.set_sample_as_light(sample_as_light)
+                if sample_as_light:
+                    sample_as_light_mats.add(point_light)
+                sample_as_light = False
 
             if sample_as_light:
                 mat_name = f"{mat_name}_{obj_name}_triset{tri_set_idx}_fullbright"
@@ -234,7 +329,15 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
                     force_fullbright=subobj_cfg['force_fullbright']
                 )
                 im = blendmat.im_from_array(mat_name, array_im)
-                if fullbright_array_im is not None:
+                if subobj_cfg.get('point_light', False):
+                    fullbright_im = blendmat.im_from_array(f"{mat_name}_fullbright", fullbright_array_im)
+                    bm = blendmat.setup_fullbright_underlay_material(
+                        blendmat.BlendMatImages.from_single_pair(im, fullbright_im),
+                        mat_name,
+                        subobj_cfg,
+                        warp=False
+                    )
+                elif fullbright_array_im is not None:
                     fullbright_im = blendmat.im_from_array(f"{mat_name}_fullbright", fullbright_array_im)
                     bm = blendmat.setup_fullbright_material(
                         blendmat.BlendMatImages.from_single_pair(im, fullbright_im),
@@ -261,7 +364,7 @@ def add_model(am, pal, mdl_name, obj_name, skin_num, mdl_cfg, initial_pose_num, 
             mesh.materials.append(bm.mat)
             _set_uvs(mesh, am, tri_set)
 
-        sub_objs.append(BlendMdlSubobject(subobj, shape_keys, subobj_cfg))
+        sub_objs.append(BlendMdlSubobject(subobj, shape_keys, point_light, subobj_cfg))
 
     return BlendMdl(am, obj, sub_objs, sample_as_light_mats,
                     initial_pose_num, group_times, mdl_cfg)

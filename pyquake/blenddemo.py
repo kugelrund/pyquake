@@ -507,7 +507,8 @@ class ObjectManager:
                                 mdl_cfg,
                                 frame,
                                 self._config['do_materials'],
-                                self._known_materials)
+                                self._known_materials,
+                                self.world_obj.scale[0])
         bm.obj.parent = self.world_obj
         bm.obj.location = origin
         bm.obj.rotation_euler = (0., -angles[0], angles[1])
@@ -569,7 +570,8 @@ class ObjectManager:
                                     mdl_cfg,
                                     initial_pose_num,
                                     self._config['do_materials'],
-                                    self._known_materials)
+                                    self._known_materials,
+                                    self.world_obj.scale[0])
             bm.obj.parent = self.world_obj
             managed_obj = AliasModelManagedObject(self._fps, bm)
 
