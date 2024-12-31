@@ -221,7 +221,7 @@ class _MaterialApplier:
                     not self._map_cfg['fullbright_object_overlay'] or not tex_cfg['overlay']):
                 bmat = blendmat.setup_fullbright_material(images, mat_name, tex_cfg, warp)
             else:
-                bmat = blendmat.setup_diffuse_material(images, mat_name, warp)
+                bmat = blendmat.setup_diffuse_material(images, mat_name, tex_cfg, warp)
         else:
             assert not self._use_lightmap
             assert images.any_fullbright, "Should only be called with fullbright textures"

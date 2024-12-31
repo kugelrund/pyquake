@@ -533,7 +533,7 @@ def setup_sky_material(ims: BlendMatImages, mat_name, mat_cfg: dict):
     return BlendMat(mat)
 
 
-def setup_diffuse_material(ims: BlendMatImages, mat_name: str, warp: bool):
+def setup_diffuse_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
     mat, nodes, links = _new_mat(mat_name)
 
     im_output, time_inputs, frame_inputs = _setup_alt_image_nodes(ims, nodes, links, warp=warp, fullbright=False)
@@ -541,7 +541,15 @@ def setup_diffuse_material(ims: BlendMatImages, mat_name: str, warp: bool):
     output_node = nodes.new('ShaderNodeOutputMaterial')
 
     links.new(diffuse_node.inputs['Color'], im_output)
-    links.new(output_node.inputs['Surface'], diffuse_node.outputs['BSDF'])
+    if mat_cfg.get('opacity', 1.0) != 1.0:
+        transparent_node = nodes.new('ShaderNodeBsdfTransparent')
+        mix_node = nodes.new('ShaderNodeMixShader')
+        mix_node.inputs['Fac'].default_value = mat_cfg['opacity']
+        links.new(transparent_node.outputs['BSDF'], mix_node.inputs[1])
+        links.new(diffuse_node.outputs['BSDF'], mix_node.inputs[2])
+        links.new(output_node.inputs['Surface'], mix_node.outputs[0])
+    else:
+        links.new(output_node.inputs['Surface'], diffuse_node.outputs['BSDF'])
 
     _create_inputs(frame_inputs, time_inputs, nodes, links)
 
