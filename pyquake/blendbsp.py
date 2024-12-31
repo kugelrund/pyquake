@@ -217,15 +217,17 @@ class _MaterialApplier:
                     )
                 else:
                     bmat = blendmat.setup_flat_material(mat_name, images, warp)
-            elif images.any_fullbright and (
-                    not self._map_cfg['fullbright_object_overlay'] or not tex_cfg['overlay']):
-                bmat = blendmat.setup_fullbright_material(images, mat_name, tex_cfg, warp)
+            elif images.any_fullbright:
+                if not self._map_cfg['fullbright_object_overlay'] or not tex_cfg['overlay']:
+                    bmat = blendmat.setup_fullbright_material(images, mat_name, tex_cfg, warp)
+                else:
+                    bmat = blendmat.setup_fullbright_underlay_material(images, mat_name, tex_cfg, warp)
             else:
                 bmat = blendmat.setup_diffuse_material(images, mat_name, tex_cfg, warp)
         else:
             assert not self._use_lightmap
             assert images.any_fullbright, "Should only be called with fullbright textures"
-            bmat = blendmat.setup_fullbright_material(images, mat_name, tex_cfg, warp)
+            bmat = blendmat.setup_fullbright_overlay_material(images, mat_name, tex_cfg, warp)
         return bmat
 
     def apply(self, model, mesh, bsp_faces, mat_type):
@@ -578,6 +580,7 @@ def add_bsp(bsp, pal, map_name, config, known_materials, obj_name_prefix=''):
 
         for obj in model_fullbright_objects:
             obj.parent = model_obj
+            obj.visible_camera = False
 
         fullbright_objects[model] |= model_fullbright_objects
 

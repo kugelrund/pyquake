@@ -556,6 +556,69 @@ def setup_diffuse_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, wa
     return BlendMat(mat)
 
 
+def setup_fullbright_overlay_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
+    mat, nodes, links = _new_mat(mat_name)
+
+    diffuse_im_output, diffuse_time_inputs, diffuse_frame_inputs = _setup_alt_image_nodes(
+        ims, nodes, links, warp=warp, fullbright=False
+    )
+    fullbright_im_output, fullbright_time_inputs, fullbright_frame_inputs = _setup_alt_image_nodes(
+            ims, nodes, links, warp=warp, fullbright=True
+    )
+    time_inputs = diffuse_time_inputs + fullbright_time_inputs
+    frame_inputs = diffuse_frame_inputs + fullbright_frame_inputs
+
+    emission_color = diffuse_im_output
+    emission_color = _add_color_tint(nodes, links, mat_cfg['tint'], emission_color)
+    emission_color = _add_color_tint_hsv(nodes, links, mat_cfg['tint_hsv'], emission_color)
+
+    emission_node = nodes.new('ShaderNodeEmission')
+    emission_node.inputs['Strength'].default_value = mat_cfg['strength']
+    transparent_node = nodes.new('ShaderNodeBsdfTransparent')
+    mix_node = nodes.new('ShaderNodeMixShader')
+    links.new(mix_node.inputs['Fac'], fullbright_im_output)
+    links.new(emission_node.inputs['Color'], emission_color)
+    links.new(transparent_node.outputs['BSDF'], mix_node.inputs[1])
+    links.new(emission_node.outputs['Emission'], mix_node.inputs[2])
+
+    output_node = nodes.new('ShaderNodeOutputMaterial')
+    links.new(output_node.inputs['Surface'], mix_node.outputs[0])
+
+    _create_inputs(frame_inputs, time_inputs, nodes, links)
+
+    return BlendMat(mat)
+
+
+def setup_fullbright_underlay_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
+    mat, nodes, links = _new_mat(mat_name)
+
+    diffuse_im_output, diffuse_time_inputs, diffuse_frame_inputs = _setup_alt_image_nodes(
+        ims, nodes, links, warp=warp, fullbright=False
+    )
+    fullbright_im_output, fullbright_time_inputs, fullbright_frame_inputs = _setup_alt_image_nodes(
+            ims, nodes, links, warp=warp, fullbright=True
+    )
+    time_inputs = diffuse_time_inputs + fullbright_time_inputs
+    frame_inputs = diffuse_frame_inputs + fullbright_frame_inputs
+
+    emission_node = nodes.new('ShaderNodeEmission')
+    diffuse_node = nodes.new('ShaderNodeBsdfDiffuse')
+    emission_node.inputs['Strength'].default_value = mat_cfg.get('cam_strength', mat_cfg['strength'])
+    links.new(emission_node.inputs['Color'], diffuse_im_output)
+    links.new(diffuse_node.inputs['Color'], diffuse_im_output)
+    mix_node = nodes.new('ShaderNodeMixShader')
+    links.new(mix_node.inputs['Fac'], fullbright_im_output)
+    links.new(diffuse_node.outputs['BSDF'], mix_node.inputs[1])
+    links.new(emission_node.outputs['Emission'], mix_node.inputs[2])
+
+    output_node = nodes.new('ShaderNodeOutputMaterial')
+    links.new(output_node.inputs['Surface'], mix_node.outputs[0])
+
+    _create_inputs(frame_inputs, time_inputs, nodes, links)
+
+    return BlendMat(mat)
+
+
 def setup_fullbright_material(ims: BlendMatImages, mat_name: str, mat_cfg: dict, warp: bool):
     mat, nodes, links = _new_mat(mat_name)
 
