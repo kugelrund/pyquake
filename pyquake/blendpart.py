@@ -356,8 +356,10 @@ def _create_particle_root():
 
 def _create_explosion_particle_object(name, colors, max_lifetime_frames):
     obj = _create_icosphere(1, f'{name}_particle')
-    obj.data.materials.append(blendmat.setup_explosion_particle_material(
-        name, colors, max_lifetime_frames).mat)
+    blend_mat = blendmat.setup_explosion_particle_material(
+        name, colors, max_lifetime_frames)
+    blend_mat.set_sample_as_light(False)
+    obj.data.materials.append(blend_mat.mat)
     obj.hide_render = True
 
     return obj
@@ -365,8 +367,10 @@ def _create_explosion_particle_object(name, colors, max_lifetime_frames):
 
 def _create_slime_explosion_particle_object(name, colors):
     obj = _create_icosphere(1, f'{name}_particle')
-    obj.data.materials.append(blendmat.setup_slime_explosion_particle_material(
-        name, colors).mat)
+    blend_mat = blendmat.setup_slime_explosion_particle_material(
+        name, colors)
+    blend_mat.set_sample_as_light(False)
+    obj.data.materials.append(blend_mat.mat)
     obj.hide_render = True
 
     return obj
@@ -374,8 +378,10 @@ def _create_slime_explosion_particle_object(name, colors):
 
 def _create_rocket_trail_particle_object(colors, max_lifetime_frames):
     obj = _create_icosphere(1, 'rocket_trail_particle')
-    obj.data.materials.append(blendmat.setup_rocket_trail_particle_material(
-        'rocket_trail', colors, max_lifetime_frames).mat)
+    blend_mat = blendmat.setup_rocket_trail_particle_material(
+        'rocket_trail', colors, max_lifetime_frames)
+    blend_mat.set_sample_as_light(False)
+    obj.data.materials.append(blend_mat.mat)
     obj.hide_render = True
 
     return obj
@@ -383,8 +389,10 @@ def _create_rocket_trail_particle_object(colors, max_lifetime_frames):
 
 def _create_teleport_particle_object(colors):
     obj = _create_icosphere(1, 'teleport_particle')
-    obj.data.materials.append(blendmat.setup_generic_particle_material(
-        'teleport', colors, strength=2.0).mat)
+    blend_mat = blendmat.setup_generic_particle_material(
+        'teleport', colors, strength=2.0)
+    blend_mat.set_sample_as_light(False)
+    obj.data.materials.append(blend_mat.mat)
     obj.hide_render = True
 
     return obj
@@ -392,8 +400,10 @@ def _create_teleport_particle_object(colors):
 
 def _create_generic_particle_object(name, colors):
     obj = _create_icosphere(1, name)
-    obj.data.materials.append(blendmat.setup_generic_particle_material(
-        name, colors, strength=0.5).mat)
+    blend_mat = blendmat.setup_generic_particle_material(
+        name, colors, strength=0.5)
+    blend_mat.set_sample_as_light(False)
+    obj.data.materials.append(blend_mat.mat)
     obj.hide_render = True
 
     return obj
