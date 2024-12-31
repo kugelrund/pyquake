@@ -402,6 +402,43 @@ class ObjectManager:
 
         self._known_materials: Dict[str, blendmat.BlendMat] = dict()
 
+        viewmodel_names = [
+            (0, "progs/v_axe.mdl"),
+            (proto.ItemFlags.LIGHTNING, "progs/v_light.mdl"),
+            (proto.ItemFlags.NAILGUN, "progs/v_nail.mdl"),
+            (proto.ItemFlags.SUPER_NAILGUN, "progs/v_nail2.mdl"),
+            (proto.ItemFlags.GRENADE_LAUNCHER, "progs/v_rock.mdl"),
+            (proto.ItemFlags.ROCKET_LAUNCHER, "progs/v_rock2.mdl"),
+            (proto.ItemFlags.SHOTGUN, "progs/v_shot.mdl"),
+            (proto.ItemFlags.SUPER_SHOTGUN, "progs/v_shot2.mdl"),
+        ]
+        self._viewmodel_objs = dict()
+        for index, name in viewmodel_names:
+            am = self._load_alias_model(name)
+            mdl_name = self._path_to_model_name(name)
+            logger.info('Loading alias model %s', mdl_name)
+            mdl_cfg = _get_model_config(mdl_name, self._config)
+            bm = blendmdl.add_model(am,
+                                    self._pal,
+                                    mdl_name,
+                                    mdl_name,
+                                    0,
+                                    mdl_cfg,
+                                    0,
+                                    self._config['do_materials'],
+                                    self._known_materials,
+                                    scale)
+            bm.obj.parent = self._demo_cam_obj
+            bm.obj.location = (0, -1.5, -3)
+            bm.obj.rotation_euler = (0., np.pi / 2, np.pi / 2)
+            self._viewmodel_objs[index] = AliasModelManagedObject(self._fps, bm)
+
+    def update_viewmodel(self, active_weapon, weapon_frame, time):
+        for obj in self._viewmodel_objs.values():
+            obj.add_visible_keyframe(False, time)
+        self._viewmodel_objs[active_weapon].add_visible_keyframe(True, time)
+        self._viewmodel_objs[active_weapon].add_pose_keyframe(weapon_frame, time)
+
     def set_intermission(self, i: bool):
         self._intermission = i
 
@@ -732,6 +769,9 @@ class ObjectManager:
         for obj in self._objs.values():
             obj.done(final_time)
 
+        for obj in self._viewmodel_objs.values():
+            obj.done(final_time)
+
         # Make the view entity invisible to camera rays
         if self._config['hide_view_entity']:
             for (entity_num, model_num), obj in self._objs.items():
@@ -776,6 +816,9 @@ def add_demo(demo_file, fs, config, fps=30, world_obj_name='demo',
             update_done = msg_end and time is not None and entities
 
             fixed_view_angles = _fix_angles(fixed_view_angles, view_angles, degrees=True)
+
+            if parsed.msg_type == proto.ServerMessageType.CLIENTDATA:
+                obj_mgr.update_viewmodel(parsed.active_weapon, parsed.weapon_frame, time)
 
             if parsed.msg_type == proto.ServerMessageType.TIME:
                 time = parsed.time
