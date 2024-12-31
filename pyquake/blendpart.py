@@ -76,6 +76,12 @@ _EXPLOSION2_RAMP = _Ramp(
 )
 _EXPLOSION2_LIFETIME = _Lifetime.from_ramp(_EXPLOSION2_RAMP)
 
+_SLIME_EXPLOSION_COLOR_INDICES = list(range(66, 66 + 6))
+_SLIME_EXPLOSION_LIFETIME = _Lifetime(min=1.0, max=1.4)
+
+_SLIME_EXPLOSION2_COLOR_INDICES = list(range(150, 150 + 6))
+_SLIME_EXPLOSION2_LIFETIME = _Lifetime(min=1.0, max=1.4)
+
 _ROCKET_TRAIL_RAMP = _Ramp(
     color_indices=[0x6d, 0x6b, 6, 5, 4, 3],
     speed=5,
@@ -124,6 +130,12 @@ class Particles:
         self._explosion2 = _create_explosion_particle_object("explosion2",
             colors=pal[_EXPLOSION2_RAMP.color_indices],
             max_lifetime_frames=int(round(_EXPLOSION2_LIFETIME.max * fps))
+        )
+        self._slime_explosion = _create_slime_explosion_particle_object("slime_explosion",
+            colors=pal[_SLIME_EXPLOSION_COLOR_INDICES]
+        )
+        self._slime_explosion2 = _create_slime_explosion_particle_object("slime_explosion2",
+            colors=pal[_SLIME_EXPLOSION2_COLOR_INDICES]
         )
         self._rocket_trail = _create_rocket_trail_particle_object(
             colors=pal[_ROCKET_TRAIL_RAMP.color_indices],
@@ -218,6 +230,18 @@ class Particles:
         emitter2 = self._create_single_explosion("explosion2", f"{obj_name}_2",
             pos, start_time, lifetime=_EXPLOSION2_LIFETIME,
             instance_object=self._explosion2)
+        emitter2.particle_systems[0].settings.damping = 0.2
+
+        return emitter, emitter2
+
+    def create_slime_explosion(self, start_time, obj_name, pos):
+        emitter = self._create_single_explosion("slime_explosion", obj_name, pos,
+            start_time, lifetime=_SLIME_EXPLOSION_LIFETIME,
+            instance_object=self._slime_explosion)
+
+        emitter2 = self._create_single_explosion("slime_explosion2", f"{obj_name}_2",
+            pos, start_time, lifetime=_SLIME_EXPLOSION2_LIFETIME,
+            instance_object=self._slime_explosion2)
         emitter2.particle_systems[0].settings.damping = 0.2
 
         return emitter, emitter2
@@ -334,6 +358,15 @@ def _create_explosion_particle_object(name, colors, max_lifetime_frames):
     obj = _create_icosphere(1, f'{name}_particle')
     obj.data.materials.append(blendmat.setup_explosion_particle_material(
         name, colors, max_lifetime_frames).mat)
+    obj.hide_render = True
+
+    return obj
+
+
+def _create_slime_explosion_particle_object(name, colors):
+    obj = _create_icosphere(1, f'{name}_particle')
+    obj.data.materials.append(blendmat.setup_slime_explosion_particle_material(
+        name, colors).mat)
     obj.hide_render = True
 
     return obj

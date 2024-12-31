@@ -650,6 +650,33 @@ def setup_explosion_particle_material(mat_name, colors, max_lifetime):
     return BlendMat(mat)
 
 
+def setup_slime_explosion_particle_material(mat_name, colors):
+    mat, nodes, links = _new_mat(mat_name)
+
+    output_node = nodes.new('ShaderNodeOutputMaterial')
+
+    emission_node = nodes.new('ShaderNodeEmission')
+    links.new(output_node.inputs['Surface'], emission_node.outputs['Emission'])
+
+    map_range_node = nodes.new('ShaderNodeMapRange')
+    map_range_node.inputs['From Min'].default_value = 0
+    map_range_node.inputs['From Max'].default_value = 1
+    map_range_node.inputs['To Min'].default_value = 50
+    map_range_node.inputs['To Max'].default_value = 1.25
+    links.new(emission_node.inputs['Strength'], map_range_node.outputs['Result'])
+
+    light_path_node = nodes.new('ShaderNodeLightPath')
+    links.new(map_range_node.inputs['Value'], light_path_node.outputs['Is Camera Ray'])
+
+    color_ramp_node = _make_color_ramp(nodes, colors)
+    links.new(emission_node.inputs['Color'], color_ramp_node.outputs['Color'])
+
+    particle_info_node = nodes.new('ShaderNodeParticleInfo')
+    links.new(color_ramp_node.inputs['Fac'], particle_info_node.outputs['Random'])
+
+    return BlendMat(mat)
+
+
 def setup_rocket_trail_particle_material(mat_name, colors, max_lifetime):
     mat, nodes, links = _new_mat(mat_name)
 

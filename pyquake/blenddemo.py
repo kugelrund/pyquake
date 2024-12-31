@@ -495,6 +495,11 @@ class ObjectManager:
         self._particles.create_explosion(time, obj_name, pos)
         self._num_explosions += 1
 
+    def create_slime_explosion(self, pos, time):
+        obj_name = f'slime_explosion{self._num_explosions}'
+        self._particles.create_slime_explosion(time, obj_name, pos)
+        self._num_explosions += 1
+
     def create_gunshot(self, pos, time):
         obj_name = f'gunshot{self._num_gunshots}'
         self._particles.create_gunshot(time, obj_name, pos)
@@ -814,6 +819,8 @@ def add_demo(demo_file, fs, config, fps=30, world_obj_name='demo',
                     obj_mgr.create_teleport(parsed.origin, time)
                 elif parsed.temp_entity_type == proto.TempEntityTypes.GUNSHOT:
                     obj_mgr.create_gunshot(parsed.origin, time)
+                elif parsed.temp_entity_type == proto.TempEntityTypes.TAREXPLOSION:
+                    obj_mgr.create_slime_explosion(parsed.origin, time)
 
             if parsed.msg_type == proto.ServerMessageType.PARTICLE:
                 obj_mgr.create_generic_particle(
